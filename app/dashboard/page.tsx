@@ -3,11 +3,16 @@ import { getServerUser } from "@/lib/server"
 import { DashboardClient } from "@/components/dashboard-client"
 
 export default async function DashboardPage() {
-  const user = await getServerUser()
+  try {
+    const user = await getServerUser()
 
-  if (!user) {
+    if (!user) {
+      redirect("/auth/login")
+    }
+
+    return <DashboardClient user={user} />
+  } catch (error) {
+    console.error("[v0] Dashboard page error:", error)
     redirect("/auth/login")
   }
-
-  return <DashboardClient user={user} />
 }

@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL, -- In production, use password_hash with bcrypt
+  password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(255),
   phone VARCHAR(20),
   avatar_url TEXT,
@@ -10,11 +10,6 @@ CREATE TABLE IF NOT EXISTS users (
   location VARCHAR(255),
   city VARCHAR(100),
   preferred_section VARCHAR(50) DEFAULT 'offline_app', -- offline_app, ai_agent
-  birth_date VARCHAR(50),
-  birth_time VARCHAR(50),
-  birth_place VARCHAR(255),
-  gender VARCHAR(50),
-  marital_status VARCHAR(50),
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()

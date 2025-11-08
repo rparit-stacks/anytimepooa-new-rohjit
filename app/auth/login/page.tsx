@@ -30,8 +30,8 @@ export default function LoginPage() {
           credentials: "include",
         })
         if (response.ok) {
-          // User is already logged in, redirect to dashboard immediately
-          router.replace("/dashboard")
+          // User is already logged in, redirect to dashboard with full reload
+          window.location.href = "/dashboard"
           return
         }
         setCheckingSession(false)
@@ -75,13 +75,15 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, otp, step: "verify-otp" }),
+        credentials: "include",
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      router.push("/dashboard")
+      
+      // Use window.location for full page reload to ensure cookies are set
+      window.location.href = "/dashboard"
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
-    } finally {
       setIsLoading(false)
     }
   }

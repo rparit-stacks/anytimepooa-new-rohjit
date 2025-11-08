@@ -30,44 +30,50 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Verify session token
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            supabaseResponse = NextResponse.next({
+              request,
+            })
+            cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
+          },
         },
       },
-    },
-  )
+    )
 
-  const { data: session, error } = await supabase
-    .from("sessions")
-    .select("*")
-    .eq("token", sessionToken)
-    .gt("expires_at", new Date().toISOString())
-    .single()
+    const { data: session, error } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("token", sessionToken)
+      .gt("expires_at", new Date().toISOString())
+      .single()
 
-  // If session is invalid, redirect to login
-  if (error || !session) {
-    if (
-      request.nextUrl.pathname !== "/" &&
-      !request.nextUrl.pathname.startsWith("/login") &&
-      !request.nextUrl.pathname.startsWith("/auth") &&
-      !request.nextUrl.pathname.startsWith("/sign-up")
-    ) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/auth/login"
-      return NextResponse.redirect(url)
+    // If session is invalid, redirect to login (but allow public routes)
+    if (error || !session) {
+      if (
+        request.nextUrl.pathname !== "/" &&
+        !request.nextUrl.pathname.startsWith("/login") &&
+        !request.nextUrl.pathname.startsWith("/auth") &&
+        !request.nextUrl.pathname.startsWith("/sign-up")
+      ) {
+        const url = request.nextUrl.clone()
+        url.pathname = "/auth/login"
+        return NextResponse.redirect(url)
+      }
     }
+  } catch (error) {
+    // If there's an error verifying session, allow the request to proceed
+    // The page itself will handle authentication
+    console.error("[v0] Middleware session check error:", error)
   }
 
   return supabaseResponse

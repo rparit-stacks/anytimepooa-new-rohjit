@@ -185,6 +185,8 @@ export async function POST(request: NextRequest) {
         path: "/",
         maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
       })
+      
+      console.log("[v0] Session cookie set for user:", user.id)
 
       console.log("[v0] User logged in successfully:", email)
       return NextResponse.json({ 
