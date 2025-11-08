@@ -175,21 +175,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Failed to create session" }, { status: 500 })
       }
 
-      // Set session token cookie
-      const cookieStore = await cookies()
-      cookieStore.set("session_token", sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        expires: sessionExpiresAt,
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-      })
-      
-      console.log("[v0] Session cookie set for user:", user.id, "| Token:", sessionToken.substring(0, 8) + "...")
-
-      console.log("[v0] User logged in successfully:", email, "| Redirecting to dashboard")
-      return NextResponse.json({ 
+      // Set session token cookie using NextResponse
+      const response = NextResponse.json({ 
         success: true, 
         message: "Logged in successfully",
         user: {
@@ -198,6 +185,22 @@ export async function POST(request: NextRequest) {
           full_name: user.full_name,
         }
       })
+
+      // Set cookie in response headers for production compatibility
+      const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
+      response.cookies.set("session_token", sessionToken, {
+        httpOnly: true,
+        secure: isProduction, // true for HTTPS in production
+        sameSite: "lax",
+        expires: sessionExpiresAt,
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+      })
+      
+      console.log("[v0] Session cookie set for user:", user.id, "| Token:", sessionToken.substring(0, 8) + "...", "| Secure:", isProduction)
+
+      console.log("[v0] User logged in successfully:", email, "| Redirecting to dashboard")
+      return response
     }
 
     return NextResponse.json({ error: "Invalid step" }, { status: 400 })

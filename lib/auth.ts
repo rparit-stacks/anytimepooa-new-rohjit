@@ -6,8 +6,10 @@ export async function getCurrentUser() {
   try {
     const cookieStore = await cookies()
     const sessionToken = cookieStore.get("session_token")?.value
+    const allCookies = cookieStore.getAll()
 
-    console.log("[getCurrentUser] Session token:", sessionToken ? "exists" : "missing")
+    console.log("[getCurrentUser] Session token:", sessionToken ? `exists (${sessionToken.substring(0, 8)}...)` : "missing")
+    console.log("[getCurrentUser] All cookies:", allCookies.map(c => c.name).join(", ") || "none")
 
     if (!sessionToken) {
       console.log("[getCurrentUser] No session token found")

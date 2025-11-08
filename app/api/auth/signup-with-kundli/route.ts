@@ -76,19 +76,8 @@ export async function POST(request: NextRequest) {
       console.error("[v0] Error creating session:", sessionError)
     }
 
-    // Set session token cookie
-    const cookieStore = await cookies()
-    cookieStore.set("session_token", sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      expires: sessionExpiresAt,
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-    })
-
-    console.log("[v0] User created successfully:", email)
-    return NextResponse.json({ 
+    // Set session token cookie using NextResponse
+    const response = NextResponse.json({ 
       success: true, 
       message: "Account created",
       user: {
@@ -97,6 +86,20 @@ export async function POST(request: NextRequest) {
         full_name: user.full_name,
       }
     })
+
+    // Set cookie in response headers for production compatibility
+    const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
+    response.cookies.set("session_token", sessionToken, {
+      httpOnly: true,
+      secure: isProduction, // true for HTTPS in production
+      sameSite: "lax",
+      expires: sessionExpiresAt,
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+    })
+
+    console.log("[v0] User created successfully:", email, "| Cookie secure:", isProduction)
+    return response
   } catch (error) {
     console.error("[v0] Signup error:", error)
     return NextResponse.json({ error: error instanceof Error ? error.message : "Signup failed" }, { status: 500 })

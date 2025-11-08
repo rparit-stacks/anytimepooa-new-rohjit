@@ -12,16 +12,19 @@ export async function POST(request: NextRequest) {
       await deleteSession(sessionToken)
     }
 
-    // Clear session token cookie
-    cookieStore.set("session_token", "", {
+    // Clear session token cookie using NextResponse
+    const response = NextResponse.json({ success: true, message: "Logged out successfully" })
+    const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
+    
+    response.cookies.set("session_token", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
       sameSite: "lax",
       expires: new Date(0),
       path: "/",
     })
 
-    return NextResponse.json({ success: true, message: "Logged out successfully" })
+    return response
   } catch (error) {
     console.error("[v0] Logout error:", error)
     return NextResponse.json(

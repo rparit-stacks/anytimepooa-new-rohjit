@@ -13,7 +13,9 @@ export async function updateSession(request: NextRequest) {
 
   // Check for session token
   const sessionToken = request.cookies.get("session_token")?.value
-  console.log("[Middleware] Path:", request.nextUrl.pathname, "| Session token:", sessionToken ? "exists" : "missing")
+  const allCookies = request.cookies.getAll()
+  console.log("[Middleware] Path:", request.nextUrl.pathname, "| Session token:", sessionToken ? `exists (${sessionToken.substring(0, 8)}...)` : "missing")
+  console.log("[Middleware] All cookies:", allCookies.map(c => c.name).join(", ") || "none")
 
   if (!sessionToken) {
     // No session token, check if route requires auth
