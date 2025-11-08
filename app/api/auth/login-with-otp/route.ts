@@ -74,11 +74,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (step === "verify-otp") {
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      console.log("[LOGIN FLOW] 🚀 STEP 1: OTP VERIFICATION STARTED")
+      console.log("[LOGIN FLOW] Email:", email)
+      console.log("[LOGIN FLOW] OTP:", otp)
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      
       if (!otp) {
+        console.log("[LOGIN FLOW] ❌ ERROR: OTP is required")
         return NextResponse.json({ error: "OTP is required" }, { status: 400 })
       }
 
-      console.log("[v0] Verifying OTP for email:", email, "OTP:", otp)
+      console.log("[LOGIN FLOW] ✅ OTP provided, verifying in database...")
 
       // Check OTP in database - try 'otp' column first, then 'code' as fallback
       let otpData = null
@@ -140,11 +147,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid OTP" }, { status: 401 })
       }
 
-      console.log("[v0] OTP verified successfully for:", email)
+      console.log("[LOGIN FLOW] ✅ STEP 2: OTP VERIFIED SUCCESSFULLY")
+      console.log("[LOGIN FLOW] OTP Data ID:", otpData.id)
 
       await supabase.from("otps").update({ verified: true }).eq("id", otpData.id)
+      console.log("[LOGIN FLOW] ✅ OTP marked as verified in database")
 
       // Get user data
+      console.log("[LOGIN FLOW] 🚀 STEP 3: FETCHING USER DATA...")
       const { data: user, error: userError } = await supabase
         .from("users")
         .select("*")
@@ -152,30 +162,48 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (userError || !user) {
-        console.error("[v0] User not found after OTP verification:", email)
+        console.log("[LOGIN FLOW] ❌ ERROR: User not found after OTP verification")
+        console.log("[LOGIN FLOW] Error:", userError?.message || "No user data")
         return NextResponse.json({ error: "User not found" }, { status: 401 })
       }
 
+      console.log("[LOGIN FLOW] ✅ STEP 4: USER FOUND")
+      console.log("[LOGIN FLOW] User ID:", user.id)
+      console.log("[LOGIN FLOW] User Email:", user.email)
+
       // Create session token
+      console.log("[LOGIN FLOW] 🚀 STEP 5: CREATING SESSION...")
       const sessionToken = crypto.randomUUID()
       const sessionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+      console.log("[LOGIN FLOW] Session Token:", sessionToken.substring(0, 20) + "...")
+      console.log("[LOGIN FLOW] Session Expires At:", sessionExpiresAt.toISOString())
 
       // Delete old sessions for this user
-      await supabase.from("sessions").delete().eq("user_id", user.id)
+      console.log("[LOGIN FLOW] Deleting old sessions for user...")
+      const deleteResult = await supabase.from("sessions").delete().eq("user_id", user.id)
+      console.log("[LOGIN FLOW] Old sessions deleted:", deleteResult.error ? "Error" : "Success")
 
       // Create new session
-      const { error: sessionError } = await supabase.from("sessions").insert({
+      console.log("[LOGIN FLOW] Inserting new session into database...")
+      const { data: newSession, error: sessionError } = await supabase.from("sessions").insert({
         user_id: user.id,
         token: sessionToken,
         expires_at: sessionExpiresAt.toISOString(),
-      })
+      }).select().single()
 
-      if (sessionError) {
-        console.error("[v0] Error creating session:", sessionError)
+      if (sessionError || !newSession) {
+        console.log("[LOGIN FLOW] ❌ ERROR: Failed to create session in database")
+        console.log("[LOGIN FLOW] Session Error:", sessionError?.message || "Unknown error")
+        console.log("[LOGIN FLOW] Session Data:", newSession)
         return NextResponse.json({ error: "Failed to create session" }, { status: 500 })
       }
 
+      console.log("[LOGIN FLOW] ✅ STEP 6: SESSION CREATED IN DATABASE")
+      console.log("[LOGIN FLOW] Session ID:", newSession.id)
+      console.log("[LOGIN FLOW] Session User ID:", newSession.user_id)
+
       // Set session token cookie using NextResponse
+      console.log("[LOGIN FLOW] 🚀 STEP 7: SETTING COOKIE...")
       const response = NextResponse.json({ 
         success: true, 
         message: "Logged in successfully",
@@ -193,6 +221,13 @@ export async function POST(request: NextRequest) {
       const origin = request.headers.get("origin") || request.headers.get("referer") || ""
       const host = request.headers.get("host") || ""
       
+      console.log("[LOGIN FLOW] Environment Check:")
+      console.log("[LOGIN FLOW]   - NODE_ENV:", process.env.NODE_ENV)
+      console.log("[LOGIN FLOW]   - VERCEL:", process.env.VERCEL)
+      console.log("[LOGIN FLOW]   - Is Production:", isProduction)
+      console.log("[LOGIN FLOW]   - Host:", host)
+      console.log("[LOGIN FLOW]   - Origin:", origin)
+      
       const cookieOptions: any = {
         httpOnly: true,
         secure: isProduction, // true for HTTPS in production
@@ -204,25 +239,32 @@ export async function POST(request: NextRequest) {
         // Setting domain can cause issues with Vercel deployments
       }
       
+      console.log("[LOGIN FLOW] Cookie Options:", JSON.stringify(cookieOptions, null, 2))
+      
+      // Set cookie using NextResponse cookies API
       response.cookies.set("session_token", sessionToken, cookieOptions)
+      console.log("[LOGIN FLOW] ✅ Cookie set using response.cookies.set()")
       
       // Also set cookie in response headers directly as backup
       const setCookieValue = `session_token=${sessionToken}; Path=/; HttpOnly; ${isProduction ? 'Secure; ' : ''}SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Expires=${sessionExpiresAt.toUTCString()}`
       response.headers.append("Set-Cookie", setCookieValue)
+      console.log("[LOGIN FLOW] ✅ Cookie also set using headers.append()")
       
-      // Log cookie details for debugging
-      console.log("[v0] === COOKIE SET DETAILS ===")
-      console.log("[v0] User ID:", user.id)
-      console.log("[v0] Session Token:", sessionToken.substring(0, 12) + "...")
-      console.log("[v0] Is Production:", isProduction)
-      console.log("[v0] Host:", host)
-      console.log("[v0] Origin:", origin)
-      console.log("[v0] Cookie Options:", JSON.stringify(cookieOptions, null, 2))
-      console.log("[v0] Set-Cookie Header:", response.headers.get("set-cookie"))
-      console.log("[v0] All Response Headers:", Array.from(response.headers.entries()).filter(([k]) => k.toLowerCase().includes("cookie")))
-      console.log("[v0] ==========================")
+      // Verify cookie was set
+      const setCookieHeader = response.headers.get("set-cookie")
+      console.log("[LOGIN FLOW] Set-Cookie Header Value:", setCookieHeader)
+      console.log("[LOGIN FLOW] All Set-Cookie Headers:", response.headers.getSetCookie())
+      
+      if (!setCookieHeader && response.headers.getSetCookie().length === 0) {
+        console.log("[LOGIN FLOW] ⚠️  WARNING: Cookie header not found in response!")
+      } else {
+        console.log("[LOGIN FLOW] ✅ Cookie header confirmed in response")
+      }
 
-      console.log("[v0] User logged in successfully:", email, "| Redirecting to dashboard")
+      console.log("[LOGIN FLOW] ✅ STEP 8: LOGIN COMPLETE - RETURNING RESPONSE")
+      console.log("[LOGIN FLOW] Response Status: 200")
+      console.log("[LOGIN FLOW] Response will include cookie in Set-Cookie header")
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
       return response
     }
 

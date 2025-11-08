@@ -16,16 +16,20 @@ export async function updateSession(request: NextRequest) {
   const allCookies = request.cookies.getAll()
   const cookieHeader = request.headers.get("cookie")
   
-  console.log("[Middleware] === REQUEST DETAILS ===")
-  console.log("[Middleware] Path:", request.nextUrl.pathname)
-  console.log("[Middleware] Method:", request.method)
-  console.log("[Middleware] Session token:", sessionToken ? `exists (${sessionToken.substring(0, 12)}...)` : "missing")
-  console.log("[Middleware] All cookies:", allCookies.map(c => `${c.name}=${c.value.substring(0, 8)}...`).join(", ") || "none")
-  console.log("[Middleware] Cookie header:", cookieHeader ? cookieHeader.substring(0, 100) + "..." : "none")
-  console.log("[Middleware] User-Agent:", request.headers.get("user-agent")?.substring(0, 50))
-  console.log("[Middleware] =======================")
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+  console.log("[MIDDLEWARE] 🚀 REQUEST RECEIVED")
+  console.log("[MIDDLEWARE] Path:", request.nextUrl.pathname)
+  console.log("[MIDDLEWARE] Method:", request.method)
+  console.log("[MIDDLEWARE] Full URL:", request.url)
+  console.log("[MIDDLEWARE] Session Token:", sessionToken ? `✅ EXISTS (${sessionToken.substring(0, 20)}...)` : "❌ MISSING")
+  console.log("[MIDDLEWARE] All Cookies Count:", allCookies.length)
+  console.log("[MIDDLEWARE] All Cookies:", allCookies.map(c => `${c.name}=${c.value.substring(0, 10)}...`).join(", ") || "none")
+  console.log("[MIDDLEWARE] Cookie Header Raw:", cookieHeader ? cookieHeader.substring(0, 200) + "..." : "❌ NONE")
+  console.log("[MIDDLEWARE] User-Agent:", request.headers.get("user-agent")?.substring(0, 50))
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
   if (!sessionToken) {
+    console.log("[MIDDLEWARE] ⚠️  NO SESSION TOKEN FOUND")
     // No session token, check if route requires auth
     if (
       request.nextUrl.pathname !== "/" &&
@@ -33,13 +37,19 @@ export async function updateSession(request: NextRequest) {
       !request.nextUrl.pathname.startsWith("/auth") &&
       !request.nextUrl.pathname.startsWith("/sign-up")
     ) {
-      console.log("[Middleware] No session token, redirecting to login from:", request.nextUrl.pathname)
+      console.log("[MIDDLEWARE] ❌ REDIRECTING TO LOGIN")
+      console.log("[MIDDLEWARE] Reason: No session token for protected route")
+      console.log("[MIDDLEWARE] From:", request.nextUrl.pathname)
+      console.log("[MIDDLEWARE] To: /auth/login")
       const url = request.nextUrl.clone()
       url.pathname = "/auth/login"
       return NextResponse.redirect(url)
     }
+    console.log("[MIDDLEWARE] ✅ Allowing public route without session")
     return supabaseResponse
   }
+  
+  console.log("[MIDDLEWARE] ✅ SESSION TOKEN FOUND, VERIFYING...")
 
   // Verify session token
   try {
@@ -69,30 +79,44 @@ export async function updateSession(request: NextRequest) {
       .gt("expires_at", new Date().toISOString())
       .single()
 
-    console.log("[Middleware] === SESSION VERIFICATION ===")
-    console.log("[Middleware] Path:", request.nextUrl.pathname)
-    console.log("[Middleware] Session found:", session ? "YES" : "NO")
-    console.log("[Middleware] Session user_id:", session?.user_id || "N/A")
-    console.log("[Middleware] Session expires_at:", session?.expires_at || "N/A")
-    console.log("[Middleware] Error:", error?.message || "none")
-    console.log("[Middleware] Error code:", error?.code || "none")
-    console.log("[Middleware] ============================")
+    console.log("[MIDDLEWARE] 🚀 VERIFYING SESSION IN DATABASE...")
+    console.log("[MIDDLEWARE] Session Token Used:", sessionToken.substring(0, 20) + "...")
+    console.log("[MIDDLEWARE] Session Found in DB:", session ? "✅ YES" : "❌ NO")
+    if (session) {
+      console.log("[MIDDLEWARE] Session User ID:", session.user_id)
+      console.log("[MIDDLEWARE] Session Expires At:", session.expires_at)
+      console.log("[MIDDLEWARE] Session Is Expired:", new Date(session.expires_at) < new Date() ? "⚠️ YES" : "✅ NO")
+    }
+    if (error) {
+      console.log("[MIDDLEWARE] ❌ DATABASE ERROR:")
+      console.log("[MIDDLEWARE] Error Message:", error.message)
+      console.log("[MIDDLEWARE] Error Code:", error.code)
+      console.log("[MIDDLEWARE] Error Details:", error)
+    }
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
     // If session is invalid, redirect to login (but allow public routes)
     if (error || !session) {
+      console.log("[MIDDLEWARE] ❌ INVALID SESSION")
       if (
         request.nextUrl.pathname !== "/" &&
         !request.nextUrl.pathname.startsWith("/login") &&
         !request.nextUrl.pathname.startsWith("/auth") &&
         !request.nextUrl.pathname.startsWith("/sign-up")
       ) {
-        console.log("[Middleware] Invalid session, redirecting to login from:", request.nextUrl.pathname)
+        console.log("[MIDDLEWARE] ❌ REDIRECTING TO LOGIN")
+        console.log("[MIDDLEWARE] Reason: Invalid or missing session in database")
+        console.log("[MIDDLEWARE] From:", request.nextUrl.pathname)
+        console.log("[MIDDLEWARE] To: /auth/login")
         const url = request.nextUrl.clone()
         url.pathname = "/auth/login"
         return NextResponse.redirect(url)
       }
+      console.log("[MIDDLEWARE] ✅ Allowing public route with invalid session")
     } else {
-      console.log("[Middleware] Valid session, allowing access to:", request.nextUrl.pathname)
+      console.log("[MIDDLEWARE] ✅ VALID SESSION - ALLOWING ACCESS")
+      console.log("[MIDDLEWARE] User ID:", session.user_id)
+      console.log("[MIDDLEWARE] Allowing access to:", request.nextUrl.pathname)
     }
   } catch (error) {
     // If there's an error verifying session, allow the request to proceed

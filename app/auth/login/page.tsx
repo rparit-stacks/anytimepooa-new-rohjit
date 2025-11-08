@@ -51,6 +51,11 @@ export default function LoginPage() {
     setIsLoading(true)
     setError(null)
 
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    console.log("[CLIENT FLOW] 🚀 STEP 1: OTP SUBMIT - SENDING REQUEST")
+    console.log("[CLIENT FLOW] Email:", email)
+    console.log("[CLIENT FLOW] OTP:", otp)
+
     try {
       const res = await fetch("/api/auth/login-with-otp", {
         method: "POST",
@@ -58,33 +63,66 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password, otp, step: "verify-otp" }),
         credentials: "include",
       })
+      
+      console.log("[CLIENT FLOW] ✅ STEP 2: RESPONSE RECEIVED")
+      console.log("[CLIENT FLOW] Response Status:", res.status)
+      console.log("[CLIENT FLOW] Response OK:", res.ok)
+      
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      console.log("[CLIENT FLOW] Response Data:", data)
+      
+      if (!res.ok) {
+        console.log("[CLIENT FLOW] ❌ ERROR: Response not OK")
+        console.log("[CLIENT FLOW] Error:", data.error)
+        throw new Error(data.error)
+      }
+      
+      console.log("[CLIENT FLOW] ✅ STEP 3: LOGIN API SUCCESS")
       
       // Check if cookie was set in response
       const setCookieHeader = res.headers.get("set-cookie")
-      console.log("[Client] Login response - Set-Cookie header:", setCookieHeader)
+      console.log("[CLIENT FLOW] Set-Cookie Header from Response:", setCookieHeader)
+      console.log("[CLIENT FLOW] All Response Headers:", Array.from(res.headers.entries()))
+      
+      if (!setCookieHeader) {
+        console.log("[CLIENT FLOW] ⚠️  WARNING: Set-Cookie header not found in response!")
+        console.log("[CLIENT FLOW] This might be because browser doesn't expose Set-Cookie header to JavaScript")
+      }
       
       // Verify cookie is set by checking with debug endpoint
-      const verifyCookie = async () => {
+      console.log("[CLIENT FLOW] 🚀 STEP 4: VERIFYING COOKIE WITH DEBUG ENDPOINT...")
+      const verifyCookie = async (attempt = 1) => {
         try {
+          console.log(`[CLIENT FLOW] Cookie verification attempt ${attempt}...`)
           const debugRes = await fetch("/api/debug/session", {
             credentials: "include",
             cache: "no-store",
           })
           const debugData = await debugRes.json()
-          console.log("[Client] Cookie verification:", debugData.cookies)
+          console.log("[CLIENT FLOW] Debug Endpoint Response:", debugData)
+          console.log("[CLIENT FLOW] Cookie Status:", debugData.cookies)
+          console.log("[CLIENT FLOW] Session Status:", debugData.session)
+          console.log("[CLIENT FLOW] User Status:", debugData.user)
           
           if (debugData.cookies.sessionToken) {
-            console.log("[Client] ✅ Cookie verified, redirecting...")
+            console.log("[CLIENT FLOW] ✅ STEP 5: COOKIE VERIFIED!")
+            console.log("[CLIENT FLOW] Session Token:", debugData.cookies.sessionToken)
+            console.log("[CLIENT FLOW] 🚀 STEP 6: REDIRECTING TO DASHBOARD...")
             window.location.href = "/dashboard"
           } else {
-            console.log("[Client] ⚠️ Cookie not found, retrying in 500ms...")
-            setTimeout(verifyCookie, 500)
+            console.log(`[CLIENT FLOW] ⚠️  Cookie not found (attempt ${attempt})`)
+            if (attempt < 5) {
+              console.log(`[CLIENT FLOW] Retrying in 500ms... (attempt ${attempt + 1}/5)`)
+              setTimeout(() => verifyCookie(attempt + 1), 500)
+            } else {
+              console.log("[CLIENT FLOW] ❌ ERROR: Cookie verification failed after 5 attempts")
+              console.log("[CLIENT FLOW] Redirecting anyway...")
+              window.location.href = "/dashboard"
+            }
           }
         } catch (err) {
-          console.error("[Client] Cookie verification error:", err)
-          // Redirect anyway after delay
+          console.error("[CLIENT FLOW] ❌ ERROR: Cookie verification failed:", err)
+          console.log("[CLIENT FLOW] Redirecting anyway after 1 second...")
           setTimeout(() => {
             window.location.href = "/dashboard"
           }, 1000)
@@ -92,8 +130,11 @@ export default function LoginPage() {
       }
       
       // Start verification after a short delay
+      console.log("[CLIENT FLOW] Waiting 300ms before cookie verification...")
       setTimeout(verifyCookie, 300)
     } catch (err) {
+      console.log("[CLIENT FLOW] ❌ ERROR: Login failed")
+      console.log("[CLIENT FLOW] Error:", err)
       setError(err instanceof Error ? err.message : "Login failed")
       setIsLoading(false)
     }
