@@ -1,103 +1,89 @@
-import Image from "next/image";
+"use client"
+
+import Link from "next/link"
+import { ChevronRight, Star, Sparkles, Moon } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { checkSession } from "@/lib/client-auth"
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [isLoaded, setIsLoaded] = useState(false)
+  const router = useRouter()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    setIsLoaded(true)
+    
+    // Check if user is already logged in, redirect to dashboard
+    const checkAuth = async () => {
+      const isLoggedIn = await checkSession()
+      if (isLoggedIn) {
+        router.push("/dashboard")
+      }
+    }
+    checkAuth()
+  }, [router])
+
+  return (
+    <main className="w-screen min-h-screen bg-gradient-to-br from-background via-background to-secondary flex flex-col relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-12 left-6 text-primary/20 animate-pulse-soft">
+          <Star size={32} strokeWidth={1.5} />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <div className="absolute top-24 right-8 text-primary/15 animate-pulse-soft" style={{ animationDelay: "0.5s" }}>
+          <Sparkles size={24} strokeWidth={1.5} />
+        </div>
+        <div className="absolute bottom-40 left-4 text-primary/10 animate-pulse-soft" style={{ animationDelay: "1s" }}>
+          <Moon size={36} strokeWidth={1.5} />
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12 text-center relative z-10 safe-area-horizontal safe-area-top">
+        {/* Logo Area */}
+        <div className={`mb-6 sm:mb-8 transition-all duration-1000 ${isLoaded ? "animate-fade-in" : "opacity-0"}`}>
+          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full gradient-astro flex items-center justify-center shadow-lg">
+            <Sparkles size={32} className="text-white" strokeWidth={1.5} />
+          </div>
+        </div>
+
+        {/* Heading */}
+        <div className={`transition-all duration-1000 delay-100 ${isLoaded ? "animate-fade-in" : "opacity-0"}`}>
+          <h1 className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-4 text-foreground leading-tight text-pretty">
+            Welcome to <span className="text-primary">AstroTalk</span>
+          </h1>
+        </div>
+
+        {/* Subtitle */}
+        <div
+          className={`transition-all duration-1000 delay-200 ${isLoaded ? "animate-fade-in" : "opacity-0"}`}
+          style={{ animationDelay: "200ms" }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          <p className="text-base sm:text-lg text-muted-foreground mb-8 sm:mb-12 max-w-md leading-relaxed">
+            Unlock cosmic wisdom. Connect with astrology like never before.
+          </p>
+        </div>
+
+        {/* CTA Buttons */}
+        <div
+          className={`flex flex-col gap-3 w-full px-0 sm:w-auto transition-all duration-1000 delay-300 ${
+            isLoaded ? "animate-fade-in" : "opacity-0"
+          }`}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          <Link href="/auth/sign-up" className="w-full sm:w-auto">
+            <button className="w-full px-6 sm:px-8 py-3 rounded-full bg-primary text-primary-foreground font-semibold shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 touch-manipulation">
+              Get Started <ChevronRight size={20} strokeWidth={2} />
+            </button>
+          </Link>
+          <Link href="/auth/login" className="w-full sm:w-auto">
+            <button className="w-full px-6 sm:px-8 py-3 rounded-full border-2 border-primary text-primary font-semibold hover:bg-primary/5 active:scale-95 transition-all duration-200 flex items-center justify-center touch-manipulation">
+              Sign In
+            </button>
+          </Link>
+        </div>
+      </div>
+
+      <footer className="border-t border-border py-4 px-4 text-center text-xs sm:text-sm text-muted-foreground safe-area-bottom safe-area-horizontal">
+        <p>Explore the universe. Discover yourself.</p>
       </footer>
-    </div>
-  );
+    </main>
+  )
 }
