@@ -61,11 +61,38 @@ export default function LoginPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       
-      // Wait a bit for cookie to be set, then redirect
-      // Use window.location for full page reload to ensure cookie is available
-      setTimeout(() => {
-        window.location.href = "/dashboard"
-      }, 100)
+      // Check if cookie was set in response
+      const setCookieHeader = res.headers.get("set-cookie")
+      console.log("[Client] Login response - Set-Cookie header:", setCookieHeader)
+      
+      // Verify cookie is set by checking with debug endpoint
+      const verifyCookie = async () => {
+        try {
+          const debugRes = await fetch("/api/debug/session", {
+            credentials: "include",
+            cache: "no-store",
+          })
+          const debugData = await debugRes.json()
+          console.log("[Client] Cookie verification:", debugData.cookies)
+          
+          if (debugData.cookies.sessionToken) {
+            console.log("[Client] ✅ Cookie verified, redirecting...")
+            window.location.href = "/dashboard"
+          } else {
+            console.log("[Client] ⚠️ Cookie not found, retrying in 500ms...")
+            setTimeout(verifyCookie, 500)
+          }
+        } catch (err) {
+          console.error("[Client] Cookie verification error:", err)
+          // Redirect anyway after delay
+          setTimeout(() => {
+            window.location.href = "/dashboard"
+          }, 1000)
+        }
+      }
+      
+      // Start verification after a short delay
+      setTimeout(verifyCookie, 300)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
       setIsLoading(false)

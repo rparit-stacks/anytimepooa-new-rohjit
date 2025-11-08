@@ -31,24 +31,30 @@ Write-Host ""
 
 # Get latest deployment URL
 Write-Host "🔍 Getting latest deployment URL..." -ForegroundColor Yellow
-$deployments = vercel ls 2>&1
+$deploymentsOutput = vercel ls 2>&1 | Out-String
 $latestUrl = $null
 
-# Parse the output to get the first Ready deployment URL
-$deployments | ForEach-Object {
-    if ($_ -match "https://([^\s]+\.vercel\.app)") {
-        if (-not $latestUrl) {
-            $latestUrl = $matches[1]
-        }
+# Parse the output to get the first Ready deployment URL (look for Ready status)
+$lines = $deploymentsOutput -split "`n"
+foreach ($line in $lines) {
+    if ($line -match "Ready" -and $line -match "https://([^\s]+\.vercel\.app)") {
+        $latestUrl = $matches[1]
+        Write-Host "✅ Found Ready deployment: $latestUrl" -ForegroundColor Green
+        break
     }
 }
 
 if (-not $latestUrl) {
-    # Fallback to production domain
-    $latestUrl = "anytimepooa-new-rohjit.vercel.app"
-    Write-Host "⚠️  Using fallback URL: $latestUrl" -ForegroundColor Yellow
-} else {
-    Write-Host "✅ Using deployment: $latestUrl" -ForegroundColor Green
+    # Try to get any deployment URL
+    if ($deploymentsOutput -match "https://([^\s]+\.vercel\.app)") {
+        $latestUrl = $matches[1]
+        Write-Host "⚠️  Using first available deployment: $latestUrl" -ForegroundColor Yellow
+    } else {
+        Write-Host "❌ Could not find deployment URL!" -ForegroundColor Red
+        Write-Host "Please run: vercel ls" -ForegroundColor Yellow
+        Write-Host "Then use: vercel logs <deployment-url>" -ForegroundColor Yellow
+        exit 1
+    }
 }
 
 Write-Host "📦 Deployment URL: $latestUrl" -ForegroundColor Cyan
