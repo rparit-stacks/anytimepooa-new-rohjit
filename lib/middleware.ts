@@ -112,6 +112,16 @@ export async function updateSession(request: NextRequest) {
       console.log(`[MIDDLEWARE] ACTION: ALLOW Path=${request.nextUrl.pathname} Reason=PublicRoute`)
     } else {
       console.log(`[MIDDLEWARE] ACTION: ALLOW Path=${request.nextUrl.pathname} UserID=${session.user_id} SessionValid=YES`)
+      // Ensure cookies are forwarded to the response
+      // Copy all cookies from request to response to ensure they're available in server components
+      request.cookies.getAll().forEach((cookie) => {
+        supabaseResponse.cookies.set(cookie.name, cookie.value, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production" || process.env.VERCEL === "1",
+          sameSite: "lax",
+          path: "/",
+        })
+      })
     }
   } catch (error) {
     // If there's an error verifying session, allow the request to proceed
