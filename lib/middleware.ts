@@ -14,8 +14,16 @@ export async function updateSession(request: NextRequest) {
   // Check for session token
   const sessionToken = request.cookies.get("session_token")?.value
   const allCookies = request.cookies.getAll()
-  console.log("[Middleware] Path:", request.nextUrl.pathname, "| Session token:", sessionToken ? `exists (${sessionToken.substring(0, 8)}...)` : "missing")
-  console.log("[Middleware] All cookies:", allCookies.map(c => c.name).join(", ") || "none")
+  const cookieHeader = request.headers.get("cookie")
+  
+  console.log("[Middleware] === REQUEST DETAILS ===")
+  console.log("[Middleware] Path:", request.nextUrl.pathname)
+  console.log("[Middleware] Method:", request.method)
+  console.log("[Middleware] Session token:", sessionToken ? `exists (${sessionToken.substring(0, 12)}...)` : "missing")
+  console.log("[Middleware] All cookies:", allCookies.map(c => `${c.name}=${c.value.substring(0, 8)}...`).join(", ") || "none")
+  console.log("[Middleware] Cookie header:", cookieHeader ? cookieHeader.substring(0, 100) + "..." : "none")
+  console.log("[Middleware] User-Agent:", request.headers.get("user-agent")?.substring(0, 50))
+  console.log("[Middleware] =======================")
 
   if (!sessionToken) {
     // No session token, check if route requires auth
@@ -61,7 +69,14 @@ export async function updateSession(request: NextRequest) {
       .gt("expires_at", new Date().toISOString())
       .single()
 
-    console.log("[Middleware] Session check for path:", request.nextUrl.pathname, "| Session:", session ? "valid" : "invalid", "| Error:", error?.message || "none")
+    console.log("[Middleware] === SESSION VERIFICATION ===")
+    console.log("[Middleware] Path:", request.nextUrl.pathname)
+    console.log("[Middleware] Session found:", session ? "YES" : "NO")
+    console.log("[Middleware] Session user_id:", session?.user_id || "N/A")
+    console.log("[Middleware] Session expires_at:", session?.expires_at || "N/A")
+    console.log("[Middleware] Error:", error?.message || "none")
+    console.log("[Middleware] Error code:", error?.code || "none")
+    console.log("[Middleware] ============================")
 
     // If session is invalid, redirect to login (but allow public routes)
     if (error || !session) {

@@ -188,16 +188,27 @@ export async function POST(request: NextRequest) {
 
       // Set cookie in response headers for production compatibility
       const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
-      response.cookies.set("session_token", sessionToken, {
+      const cookieOptions = {
         httpOnly: true,
         secure: isProduction, // true for HTTPS in production
-        sameSite: "lax",
+        sameSite: "lax" as const,
         expires: sessionExpiresAt,
         path: "/",
         maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-      })
+      }
       
-      console.log("[v0] Session cookie set for user:", user.id, "| Token:", sessionToken.substring(0, 8) + "...", "| Secure:", isProduction)
+      response.cookies.set("session_token", sessionToken, cookieOptions)
+      
+      // Log cookie details for debugging
+      console.log("[v0] === COOKIE SET DETAILS ===")
+      console.log("[v0] User ID:", user.id)
+      console.log("[v0] Session Token:", sessionToken.substring(0, 12) + "...")
+      console.log("[v0] Is Production:", isProduction)
+      console.log("[v0] Cookie Options:", JSON.stringify(cookieOptions, null, 2))
+      console.log("[v0] Cookie Headers:", response.headers.get("set-cookie"))
+      console.log("[v0] VERCEL Env:", process.env.VERCEL)
+      console.log("[v0] NODE_ENV:", process.env.NODE_ENV)
+      console.log("[v0] ==========================")
 
       console.log("[v0] User logged in successfully:", email, "| Redirecting to dashboard")
       return response

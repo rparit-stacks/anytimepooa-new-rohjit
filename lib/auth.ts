@@ -8,8 +8,11 @@ export async function getCurrentUser() {
     const sessionToken = cookieStore.get("session_token")?.value
     const allCookies = cookieStore.getAll()
 
-    console.log("[getCurrentUser] Session token:", sessionToken ? `exists (${sessionToken.substring(0, 8)}...)` : "missing")
-    console.log("[getCurrentUser] All cookies:", allCookies.map(c => c.name).join(", ") || "none")
+    console.log("[getCurrentUser] === COOKIE READ DETAILS ===")
+    console.log("[getCurrentUser] Session token:", sessionToken ? `exists (${sessionToken.substring(0, 12)}...)` : "missing")
+    console.log("[getCurrentUser] All cookies:", allCookies.map(c => `${c.name}=${c.value.substring(0, 8)}...`).join(", ") || "none")
+    console.log("[getCurrentUser] Cookie count:", allCookies.length)
+    console.log("[getCurrentUser] ===========================")
 
     if (!sessionToken) {
       console.log("[getCurrentUser] No session token found")
