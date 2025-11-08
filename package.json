@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "logs": "node -e \"const {execSync} = require('child_process'); const os = require('os'); const isWin = os.platform() === 'win32'; const script = isWin ? 'scripts\\\\track-vercel-logs.bat' : 'bash scripts/track-vercel-logs.sh'; execSync(script, {stdio: 'inherit', shell: isWin})\"",
-    "logs:vercel": "vercel logs v0-astrology-app-design",
+    "logs:vercel": "vercel logs anytimepooa-new-rohjit.vercel.app",
     "logs:simple": "vercel logs"
   },
   "dependencies": {

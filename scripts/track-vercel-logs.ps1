@@ -29,22 +29,29 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "✅ Logged in as: $vercelWhoami" -ForegroundColor Green
 Write-Host ""
 
-# Get project name - use the actual Vercel project name
-$projectName = "v0-astrology-app-design"
-Write-Host "📦 Project: $projectName" -ForegroundColor Cyan
-Write-Host ""
-
 # Get latest deployment URL
-Write-Host "🔍 Getting latest deployment..." -ForegroundColor Yellow
-$deployments = vercel ls $projectName --json 2>&1 | ConvertFrom-Json
-if ($deployments -and $deployments.Count -gt 0) {
-    $latestDeployment = $deployments[0]
-    $deploymentUrl = $latestDeployment.url
-    Write-Host "✅ Latest deployment: $deploymentUrl" -ForegroundColor Green
-} else {
-    Write-Host "⚠️  Using project name directly" -ForegroundColor Yellow
-    $deploymentUrl = $projectName
+Write-Host "🔍 Getting latest deployment URL..." -ForegroundColor Yellow
+$deployments = vercel ls 2>&1
+$latestUrl = $null
+
+# Parse the output to get the first Ready deployment URL
+$deployments | ForEach-Object {
+    if ($_ -match "https://([^\s]+\.vercel\.app)") {
+        if (-not $latestUrl) {
+            $latestUrl = $matches[1]
+        }
+    }
 }
+
+if (-not $latestUrl) {
+    # Fallback to production domain
+    $latestUrl = "anytimepooa-new-rohjit.vercel.app"
+    Write-Host "⚠️  Using fallback URL: $latestUrl" -ForegroundColor Yellow
+} else {
+    Write-Host "✅ Using deployment: $latestUrl" -ForegroundColor Green
+}
+
+Write-Host "📦 Deployment URL: $latestUrl" -ForegroundColor Cyan
 Write-Host ""
 
 # Filter for important logs
@@ -62,7 +69,7 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 Write-Host ""
 
 # Stream logs with filtering (new Vercel CLI streams automatically for 5 minutes)
-vercel logs $deploymentUrl 2>&1 | ForEach-Object {
+vercel logs $latestUrl 2>&1 | ForEach-Object {
     $line = $_
     
     # Color code different log types
