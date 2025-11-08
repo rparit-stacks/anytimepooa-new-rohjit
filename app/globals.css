@@ -294,4 +294,37 @@
       width: 100%;
     }
   }
+
+  /* Mobile keyboard handling - ensure inputs stay visible */
+  @media (max-width: 768px) {
+    /* Prevent body scroll when keyboard is open */
+    body.keyboard-open {
+      position: fixed;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    /* Ensure inputs scroll into view */
+    input:focus,
+    textarea:focus,
+    select:focus {
+      scroll-margin-top: 20vh;
+      scroll-margin-bottom: 20vh;
+    }
+  }
+
+  /* Visual viewport support for keyboard */
+  @supports (height: 100dvh) {
+    @media (max-width: 768px) {
+      html {
+        height: 100dvh;
+        height: -webkit-fill-available;
+      }
+      
+      body {
+        min-height: 100dvh;
+        min-height: -webkit-fill-available;
+      }
+    }
+  }
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,95 @@ export default function SignUpPage() {
     maritalStatus: "",
   })
   const router = useRouter()
+  const cardRef = useRef<HTMLDivElement>(null)
+  const emailInputRef = useRef<HTMLInputElement>(null)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
+  const otpInputRef = useRef<HTMLInputElement>(null)
+  const fullNameInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle keyboard opening - scroll input into view
+  useEffect(() => {
+    const handleInputFocus = (input: HTMLInputElement | null) => {
+      if (!input || !cardRef.current) return
+      
+      // Small delay to ensure keyboard is opening
+      setTimeout(() => {
+        // Scroll input into view with some padding
+        input.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'nearest'
+        })
+        
+        // Also scroll the card container if needed
+        if (cardRef.current) {
+          const rect = input.getBoundingClientRect()
+          const viewportHeight = window.visualViewport?.height || window.innerHeight
+          const keyboardHeight = window.innerHeight - viewportHeight
+          
+          if (keyboardHeight > 0 && rect.bottom > viewportHeight - 100) {
+            const scrollAmount = rect.bottom - (viewportHeight - 100)
+            window.scrollBy({
+              top: scrollAmount,
+              behavior: 'smooth'
+            })
+          }
+        }
+      }, 300)
+    }
+
+    // Handle visual viewport changes (keyboard open/close)
+    const handleViewportChange = () => {
+      const activeElement = document.activeElement as HTMLInputElement
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT')) {
+        handleInputFocus(activeElement)
+      }
+    }
+
+    // Listen for visual viewport changes
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange)
+      window.visualViewport.addEventListener('scroll', handleViewportChange)
+    }
+
+    // Handle input focus events
+    const emailInput = emailInputRef.current
+    const passwordInput = passwordInputRef.current
+    const otpInput = otpInputRef.current
+    const fullNameInput = fullNameInputRef.current
+
+    if (emailInput) {
+      emailInput.addEventListener('focus', () => handleInputFocus(emailInput))
+    }
+    if (passwordInput) {
+      passwordInput.addEventListener('focus', () => handleInputFocus(passwordInput))
+    }
+    if (otpInput) {
+      otpInput.addEventListener('focus', () => handleInputFocus(otpInput))
+    }
+    if (fullNameInput) {
+      fullNameInput.addEventListener('focus', () => handleInputFocus(fullNameInput))
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange)
+        window.visualViewport.removeEventListener('scroll', handleViewportChange)
+      }
+      if (emailInput) {
+        emailInput.removeEventListener('focus', () => handleInputFocus(emailInput))
+      }
+      if (passwordInput) {
+        passwordInput.removeEventListener('focus', () => handleInputFocus(passwordInput))
+      }
+      if (otpInput) {
+        otpInput.removeEventListener('focus', () => handleInputFocus(otpInput))
+      }
+      if (fullNameInput) {
+        fullNameInput.removeEventListener('focus', () => handleInputFocus(fullNameInput))
+      }
+    }
+  }, [step])
 
   // Step 1: Send OTP to email
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -150,7 +239,7 @@ export default function SignUpPage() {
       </Link>
 
       {/* Signup Card - Edge to Edge Bottom with Rounded Top */}
-      <div className="absolute bottom-0 left-0 right-0 w-full transition-all duration-700 animate-slide-up">
+      <div ref={cardRef} className="absolute bottom-0 left-0 right-0 w-full transition-all duration-700 animate-slide-up" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <Card className="rounded-t-3xl sm:rounded-t-[2.5rem] shadow-2xl border-0 bg-white/95 backdrop-blur-xl">
           <CardHeader className="text-center border-b border-gray-200/50 pb-6 pt-8">
             {/* Logo */}
@@ -183,6 +272,7 @@ export default function SignUpPage() {
                     Email Address
                   </Label>
                   <Input
+                    ref={emailInputRef}
                     id="email"
                     type="email"
                     placeholder="your@email.com"
@@ -220,6 +310,7 @@ export default function SignUpPage() {
                     Enter OTP
                   </Label>
                   <Input
+                    ref={otpInputRef}
                     id="otp"
                     type="text"
                     placeholder="000000"
@@ -257,6 +348,7 @@ export default function SignUpPage() {
                     Create Password
                   </Label>
                   <Input
+                    ref={passwordInputRef}
                     id="password"
                     type="password"
                     placeholder="••••••••"
@@ -292,6 +384,7 @@ export default function SignUpPage() {
                     Full Name
                   </Label>
                   <Input
+                    ref={fullNameInputRef}
                     id="fullName"
                     type="text"
                     placeholder="Enter your full name"
