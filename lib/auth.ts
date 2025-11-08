@@ -29,16 +29,22 @@ export async function getCurrentUser() {
     )
 
     // Get session from database
+    // Use maybeSingle() instead of single() to handle no rows gracefully
+    // PGRST116 error occurs when .single() finds 0 rows - we want to handle this gracefully
     console.log(`[getCurrentUser] QUERY | Token: ${sessionToken.substring(0, 16)}...`)
     const { data: session, error: sessionError } = await supabase
       .from("sessions")
       .select("*")
       .eq("token", sessionToken)
       .gt("expires_at", new Date().toISOString())
-      .single()
+      .maybeSingle()
 
-    if (sessionError || !session) {
-      const errorMsg = sessionError?.message || "NOT_FOUND"
+    // Handle PGRST116 specifically (no rows found) - this is expected when session doesn't exist
+    const isNoRowsError = sessionError?.code === "PGRST116"
+    const hasValidSession = session && !isNoRowsError && !sessionError
+
+    if (!hasValidSession) {
+      const errorMsg = isNoRowsError ? "SESSION_NOT_FOUND" : (sessionError?.message || "NOT_FOUND")
       const errorCode = sessionError?.code || "NONE"
       console.log(`[getCurrentUser] RESULT: NO_SESSION | ErrorCode=${errorCode} ErrorMsg=${errorMsg}`)
       return null
