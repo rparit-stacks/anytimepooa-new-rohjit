@@ -193,6 +193,9 @@ export async function POST(request: NextRequest) {
       const origin = request.headers.get("origin") || request.headers.get("referer") || ""
       const host = request.headers.get("host") || ""
       
+      // Extract domain from host (remove port if present)
+      const domain = host.split(":")[0]
+      
       const cookieOptions: any = {
         httpOnly: true,
         secure: isProduction, // true for HTTPS in production
@@ -202,8 +205,15 @@ export async function POST(request: NextRequest) {
         maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
       }
       
-      // Don't set domain - let browser handle it automatically
-      // Setting domain explicitly can cause issues with subdomains
+      // Set domain for production to ensure cookie works across subdomains
+      // For Vercel, we need to set domain to the main domain
+      if (isProduction && domain && !domain.includes("localhost")) {
+        // Extract root domain (e.g., anytimepooa-new-rohjit.vercel.app)
+        const rootDomain = domain.includes("vercel.app") 
+          ? domain.split(".").slice(-2).join(".") // Get last 2 parts for .vercel.app
+          : domain.split(".").slice(-2).join(".") // For custom domains, get last 2 parts
+        cookieOptions.domain = rootDomain
+      }
       
       response.cookies.set("session_token", sessionToken, cookieOptions)
       
