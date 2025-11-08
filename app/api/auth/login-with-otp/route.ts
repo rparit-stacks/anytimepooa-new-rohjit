@@ -186,9 +186,9 @@ export async function POST(request: NextRequest) {
         maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
       })
       
-      console.log("[v0] Session cookie set for user:", user.id)
+      console.log("[v0] Session cookie set for user:", user.id, "| Token:", sessionToken.substring(0, 8) + "...")
 
-      console.log("[v0] User logged in successfully:", email)
+      console.log("[v0] User logged in successfully:", email, "| Redirecting to dashboard")
       return NextResponse.json({ 
         success: true, 
         message: "Logged in successfully",

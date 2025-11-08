@@ -18,29 +18,10 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [checkingSession, setCheckingSession] = useState(true)
   const router = useRouter()
 
-  // Check if user is already logged in - redirect immediately
-  useEffect(() => {
-    const checkExistingSession = async () => {
-      try {
-        const response = await fetch("/api/user/profile", {
-          method: "GET",
-          credentials: "include",
-        })
-        if (response.ok) {
-          // User is already logged in, redirect to dashboard with full reload
-          window.location.href = "/dashboard"
-          return
-        }
-        setCheckingSession(false)
-      } catch (error) {
-        setCheckingSession(false)
-      }
-    }
-    checkExistingSession()
-  }, [router])
+  // Don't check session on login page - let middleware handle redirects
+  // This prevents infinite redirect loops
 
   // Step 1: Submit credentials & send OTP
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -80,23 +61,15 @@ export default function LoginPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       
-      // Use window.location for full page reload to ensure cookies are set
-      window.location.href = "/dashboard"
+      // Wait a bit for cookie to be set, then redirect
+      // Use window.location for full page reload to ensure cookie is available
+      setTimeout(() => {
+        window.location.href = "/dashboard"
+      }, 100)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
       setIsLoading(false)
     }
-  }
-
-  if (checkingSession) {
-    return (
-      <div className="w-screen min-h-screen bg-gradient-to-br from-background via-background to-secondary flex flex-col items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="animate-spin text-primary mx-auto mb-4" size={32} />
-          <p className="text-muted-foreground">Checking session...</p>
-        </div>
-      </div>
-    )
   }
 
   return (

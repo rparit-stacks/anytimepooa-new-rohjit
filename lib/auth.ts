@@ -7,7 +7,10 @@ export async function getCurrentUser() {
     const cookieStore = await cookies()
     const sessionToken = cookieStore.get("session_token")?.value
 
+    console.log("[getCurrentUser] Session token:", sessionToken ? "exists" : "missing")
+
     if (!sessionToken) {
+      console.log("[getCurrentUser] No session token found")
       return null
     }
 
@@ -33,8 +36,11 @@ export async function getCurrentUser() {
       .single()
 
     if (sessionError || !session) {
+      console.log("[getCurrentUser] Session not found or expired:", sessionError?.message || "no session")
       return null
     }
+
+    console.log("[getCurrentUser] Session found for user_id:", session.user_id)
 
     // Get user data
     const { data: user, error: userError } = await supabase
@@ -44,9 +50,11 @@ export async function getCurrentUser() {
       .single()
 
     if (userError || !user) {
+      console.log("[getCurrentUser] User not found:", userError?.message || "no user")
       return null
     }
 
+    console.log("[getCurrentUser] User found:", user.email)
     // Return user data
     return user
   } catch (error) {
