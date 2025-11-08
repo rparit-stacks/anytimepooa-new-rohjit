@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Loader2 } from "lucide-react"
-import { vibrate } from "@/lib/vibration"
+import { vibrate, vibratePattern } from "@/lib/vibration"
 
 interface Offer {
   id: string
@@ -101,7 +101,7 @@ export default function AddMoneyPage() {
       return
     }
 
-    vibrate([50, 30, 50])
+    vibratePattern([50, 30, 50])
     setLoading(true)
 
     // Simulate payment processing

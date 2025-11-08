@@ -1,8 +1,9 @@
 import { getCurrentUser } from "@/lib/auth"
 import { createClient } from "@/lib/server"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
 
     if (!user) {
@@ -14,7 +15,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const { data: horoscope, error } = await supabase
       .from("horoscopes")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("user_id", user.id)
       .single()
 
