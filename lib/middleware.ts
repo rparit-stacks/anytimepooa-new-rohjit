@@ -74,10 +74,7 @@ export async function updateSession(request: NextRequest) {
 
     // Query session - we'll log it separately below
 
-    console.log("[MIDDLEWARE] 🚀 VERIFYING SESSION IN DATABASE...")
-    console.log("[MIDDLEWARE] Path:", request.nextUrl.pathname)
-    console.log("[MIDDLEWARE] Session Token Used:", sessionToken.substring(0, 20) + "...")
-    console.log("[MIDDLEWARE] Querying database for session...")
+    console.log("[MIDDLEWARE] 🚀 VERIFYING SESSION | Path:", request.nextUrl.pathname, "| Token:", sessionToken.substring(0, 12) + "...")
     
     const sessionResult = await supabase
       .from("sessions")
@@ -89,58 +86,31 @@ export async function updateSession(request: NextRequest) {
     const session = sessionResult.data
     const error = sessionResult.error
     
-    console.log("[MIDDLEWARE] Database Query Result:")
-    console.log("[MIDDLEWARE]   - Session Found:", session ? "✅ YES" : "❌ NO")
-    console.log("[MIDDLEWARE]   - Error:", error ? `❌ ${error.message}` : "✅ NONE")
-    
+    // Single line log for better visibility in Vercel
     if (session) {
-      console.log("[MIDDLEWARE] ✅ VALID SESSION FOUND")
-      console.log("[MIDDLEWARE] Session ID:", session.id)
-      console.log("[MIDDLEWARE] Session User ID:", session.user_id)
-      console.log("[MIDDLEWARE] Session Expires At:", session.expires_at)
       const isExpired = new Date(session.expires_at) < new Date()
-      console.log("[MIDDLEWARE] Session Is Expired:", isExpired ? "⚠️ YES" : "✅ NO")
+      console.log(`[MIDDLEWARE] ✅ SESSION FOUND | User: ${session.user_id} | Expired: ${isExpired ? "YES" : "NO"} | Path: ${request.nextUrl.pathname}`)
     } else {
-      console.log("[MIDDLEWARE] ❌ NO SESSION FOUND IN DATABASE")
-      if (error) {
-        console.log("[MIDDLEWARE] Error Code:", error.code)
-        console.log("[MIDDLEWARE] Error Details:", JSON.stringify(error, null, 2))
-      }
+      const errorMsg = error ? error.message : "Not found"
+      console.log(`[MIDDLEWARE] ❌ NO SESSION | Error: ${errorMsg} | Path: ${request.nextUrl.pathname}`)
     }
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
     // If session is invalid, redirect to login (but allow public routes)
     if (error || !session) {
-      console.log("[MIDDLEWARE] ❌ DECISION: INVALID SESSION")
-      console.log("[MIDDLEWARE] Path:", request.nextUrl.pathname)
-      console.log("[MIDDLEWARE] Is Protected Route:", 
-        request.nextUrl.pathname !== "/" &&
+      const isProtected = request.nextUrl.pathname !== "/" &&
         !request.nextUrl.pathname.startsWith("/login") &&
         !request.nextUrl.pathname.startsWith("/auth") &&
         !request.nextUrl.pathname.startsWith("/sign-up")
-      )
       
-      if (
-        request.nextUrl.pathname !== "/" &&
-        !request.nextUrl.pathname.startsWith("/login") &&
-        !request.nextUrl.pathname.startsWith("/auth") &&
-        !request.nextUrl.pathname.startsWith("/sign-up")
-      ) {
-        console.log("[MIDDLEWARE] ❌ ACTION: REDIRECTING TO LOGIN")
-        console.log("[MIDDLEWARE] Reason: Invalid or missing session in database")
-        console.log("[MIDDLEWARE] From:", request.nextUrl.pathname)
-        console.log("[MIDDLEWARE] To: /auth/login")
+      if (isProtected) {
+        console.log(`[MIDDLEWARE] ❌ REDIRECT | From: ${request.nextUrl.pathname} | To: /auth/login | Reason: Invalid session`)
         const url = request.nextUrl.clone()
         url.pathname = "/auth/login"
         return NextResponse.redirect(url)
       }
-      console.log("[MIDDLEWARE] ✅ ACTION: Allowing public route with invalid session")
+      console.log(`[MIDDLEWARE] ✅ ALLOW | Path: ${request.nextUrl.pathname} | Reason: Public route`)
     } else {
-      console.log("[MIDDLEWARE] ✅ DECISION: VALID SESSION")
-      console.log("[MIDDLEWARE] ✅ ACTION: ALLOWING ACCESS")
-      console.log("[MIDDLEWARE] User ID:", session.user_id)
-      console.log("[MIDDLEWARE] Path:", request.nextUrl.pathname)
-      console.log("[MIDDLEWARE] Request will proceed to page component")
+      console.log(`[MIDDLEWARE] ✅ ALLOW | Path: ${request.nextUrl.pathname} | User: ${session.user_id} | Session valid`)
     }
   } catch (error) {
     // If there's an error verifying session, allow the request to proceed
