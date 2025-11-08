@@ -193,9 +193,6 @@ export async function POST(request: NextRequest) {
       const origin = request.headers.get("origin") || request.headers.get("referer") || ""
       const host = request.headers.get("host") || ""
       
-      // Extract domain from host (remove port if present)
-      const domain = host.split(":")[0]
-      
       const cookieOptions: any = {
         httpOnly: true,
         secure: isProduction, // true for HTTPS in production
@@ -203,19 +200,15 @@ export async function POST(request: NextRequest) {
         expires: sessionExpiresAt,
         path: "/",
         maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-      }
-      
-      // Set domain for production to ensure cookie works across subdomains
-      // For Vercel, we need to set domain to the main domain
-      if (isProduction && domain && !domain.includes("localhost")) {
-        // Extract root domain (e.g., anytimepooa-new-rohjit.vercel.app)
-        const rootDomain = domain.includes("vercel.app") 
-          ? domain.split(".").slice(-2).join(".") // Get last 2 parts for .vercel.app
-          : domain.split(".").slice(-2).join(".") // For custom domains, get last 2 parts
-        cookieOptions.domain = rootDomain
+        // Don't set domain - let browser handle it automatically
+        // Setting domain can cause issues with Vercel deployments
       }
       
       response.cookies.set("session_token", sessionToken, cookieOptions)
+      
+      // Also set cookie in response headers directly as backup
+      const setCookieValue = `session_token=${sessionToken}; Path=/; HttpOnly; ${isProduction ? 'Secure; ' : ''}SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Expires=${sessionExpiresAt.toUTCString()}`
+      response.headers.append("Set-Cookie", setCookieValue)
       
       // Log cookie details for debugging
       console.log("[v0] === COOKIE SET DETAILS ===")
