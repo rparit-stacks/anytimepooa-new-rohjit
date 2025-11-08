@@ -52,7 +52,7 @@ export function SidebarMenu({ isOpen, onClose, userName }: SidebarMenuProps) {
               />
               <div>
                 <h2 className="font-bold text-lg">AstroTalk</h2>
-                <p className="text-xs text-orange-600 font-semibold">Anytime Pooja</p>
+                <p className="text-base font-bold text-orange-600">Anytime Pooja</p>
               </div>
             </div>
             <button
@@ -145,6 +145,18 @@ export function SidebarMenu({ isOpen, onClose, userName }: SidebarMenuProps) {
             >
               <i className="fas fa-user text-xl w-6"></i>
               <span className="font-semibold">Profile</span>
+            </Link>
+
+            <Link
+              href="/notifications"
+              onClick={() => {
+                vibrate()
+                onClose()
+              }}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <i className="fas fa-bell text-xl w-6"></i>
+              <span className="font-semibold">Notifications</span>
             </Link>
 
             <Link

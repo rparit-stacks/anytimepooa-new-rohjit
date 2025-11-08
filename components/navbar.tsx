@@ -91,15 +91,15 @@ export function TopNavbar({ userName, onMenuClick }: { userName?: string; onMenu
             />
             <div className="flex flex-col">
               <h1 className="text-lg sm:text-xl font-bold hidden sm:block">AstroTalk</h1>
-              <span className="text-xs text-orange-600 font-semibold">Anytime Pooja</span>
+              <span className="text-base sm:text-lg font-bold text-orange-600">Anytime Pooja</span>
             </div>
           </Link>
         </div>
 
         {/* Mobile: Notifications + Three Menu */}
         <div className="flex items-center gap-3 sm:hidden">
-          <button
-            onClick={() => vibrate()}
+          <Link
+            href="/notifications"
             className="relative p-2 text-gray-600 hover:text-orange-600 transition-colors active:scale-95"
           >
             <i className="fas fa-bell text-xl"></i>
@@ -108,7 +108,7 @@ export function TopNavbar({ userName, onMenuClick }: { userName?: string; onMenu
                 {notifications}
               </span>
             )}
-          </button>
+          </Link>
           <button
             onClick={() => {
               vibrate()
@@ -126,8 +126,8 @@ export function TopNavbar({ userName, onMenuClick }: { userName?: string; onMenu
 
         {/* Desktop: Notifications + Three Menu + Welcome + Logout */}
         <div className="hidden sm:flex items-center gap-4">
-          <button
-            onClick={() => vibrate()}
+          <Link
+            href="/notifications"
             className="relative p-2 text-gray-600 hover:text-orange-600 transition-colors"
           >
             <i className="fas fa-bell text-lg"></i>
@@ -136,7 +136,7 @@ export function TopNavbar({ userName, onMenuClick }: { userName?: string; onMenu
                 {notifications}
               </span>
             )}
-          </button>
+          </Link>
           <button
             onClick={() => {
               vibrate()
@@ -155,7 +155,7 @@ export function TopNavbar({ userName, onMenuClick }: { userName?: string; onMenu
               Welcome, <span className="font-semibold text-foreground">{userName}</span>
             </div>
           )}
-          <div className="text-xs text-orange-600 font-semibold">Anytime Pooja</div>
+          <div className="text-base font-bold text-orange-600">Anytime Pooja</div>
           <Button
             onClick={handleLogout}
             variant="outline"

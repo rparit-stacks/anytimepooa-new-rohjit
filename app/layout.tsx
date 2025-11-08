@@ -7,6 +7,7 @@ import { GlobalNavbar } from "@/components/global-navbar"
 import { ToastContainer } from "@/components/toast"
 import { NavigationLoader } from "@/components/navigation-loader"
 import { SessionDebugger } from "@/components/session-debugger"
+import { GlobalClickHandler } from "@/components/global-click-handler"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -45,6 +46,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`font-sans antialiased overflow-x-hidden`} style={{ padding: 0, margin: 0 }}>
+        <GlobalClickHandler />
         <NavigationLoader />
         {children}
         <GlobalNavbar />
