@@ -29,9 +29,22 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "✅ Logged in as: $vercelWhoami" -ForegroundColor Green
 Write-Host ""
 
-# Get project name from package.json or ask user
-$projectName = "anytimepooa-new-rohjit"
+# Get project name - use the actual Vercel project name
+$projectName = "v0-astrology-app-design"
 Write-Host "📦 Project: $projectName" -ForegroundColor Cyan
+Write-Host ""
+
+# Get latest deployment URL
+Write-Host "🔍 Getting latest deployment..." -ForegroundColor Yellow
+$deployments = vercel ls $projectName --json 2>&1 | ConvertFrom-Json
+if ($deployments -and $deployments.Count -gt 0) {
+    $latestDeployment = $deployments[0]
+    $deploymentUrl = $latestDeployment.url
+    Write-Host "✅ Latest deployment: $deploymentUrl" -ForegroundColor Green
+} else {
+    Write-Host "⚠️  Using project name directly" -ForegroundColor Yellow
+    $deploymentUrl = $projectName
+}
 Write-Host ""
 
 # Filter for important logs
@@ -44,12 +57,12 @@ Write-Host "  - Cookie" -ForegroundColor White
 Write-Host "  - Session" -ForegroundColor White
 Write-Host ""
 
-Write-Host "📡 Streaming live logs (Press Ctrl+C to stop)..." -ForegroundColor Green
+Write-Host "📡 Streaming live logs (runs for 5 minutes, Press Ctrl+C to stop)..." -ForegroundColor Green
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
 Write-Host ""
 
-# Stream logs with filtering
-vercel logs --follow $projectName 2>&1 | ForEach-Object {
+# Stream logs with filtering (new Vercel CLI streams automatically for 5 minutes)
+vercel logs $deploymentUrl 2>&1 | ForEach-Object {
     $line = $_
     
     # Color code different log types

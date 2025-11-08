@@ -28,7 +28,7 @@ echo "✅ Logged in to Vercel"
 echo ""
 
 # Get project name
-PROJECT_NAME="anytimepooa-new-rohjit"
+PROJECT_NAME="v0-astrology-app-design"
 echo "📦 Project: $PROJECT_NAME"
 echo ""
 
@@ -42,12 +42,12 @@ echo "  - Cookie"
 echo "  - Session"
 echo ""
 
-echo "📡 Streaming live logs (Press Ctrl+C to stop)..."
+echo "📡 Streaming live logs (runs for 5 minutes, Press Ctrl+C to stop)..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Stream logs with color coding
-vercel logs --follow $PROJECT_NAME 2>&1 | while IFS= read -r line; do
+# Stream logs with color coding (new Vercel CLI streams automatically for 5 minutes)
+vercel logs $PROJECT_NAME 2>&1 | while IFS= read -r line; do
     if [[ $line =~ \[Middleware\] ]]; then
         echo -e "\033[0;36m$line\033[0m"  # Cyan
     elif [[ $line =~ \[getCurrentUser\] ]]; then

@@ -28,7 +28,7 @@ echo ✅ Logged in to Vercel
 echo.
 
 REM Project name
-set PROJECT_NAME=anytimepooa-new-rohjit
+set PROJECT_NAME=v0-astrology-app-design
 echo 📦 Project: %PROJECT_NAME%
 echo.
 
@@ -41,10 +41,10 @@ echo   - Cookie
 echo   - Session
 echo.
 
-echo 📡 Streaming live logs (Press Ctrl+C to stop)...
+echo 📡 Streaming live logs (runs for 5 minutes, Press Ctrl+C to stop)...
 echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 echo.
 
-REM Stream logs
-vercel logs --follow %PROJECT_NAME%
+REM Stream logs (new Vercel CLI streams automatically for 5 minutes)
+vercel logs %PROJECT_NAME%
 
