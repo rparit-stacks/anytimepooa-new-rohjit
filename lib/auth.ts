@@ -8,14 +8,10 @@ export async function getCurrentUser() {
     const sessionToken = cookieStore.get("session_token")?.value
     const allCookies = cookieStore.getAll()
 
-    console.log("[getCurrentUser] === COOKIE READ DETAILS ===")
-    console.log("[getCurrentUser] Session token:", sessionToken ? `exists (${sessionToken.substring(0, 12)}...)` : "missing")
-    console.log("[getCurrentUser] All cookies:", allCookies.map(c => `${c.name}=${c.value.substring(0, 8)}...`).join(", ") || "none")
-    console.log("[getCurrentUser] Cookie count:", allCookies.length)
-    console.log("[getCurrentUser] ===========================")
+    console.log(`[getCurrentUser] CHECK | Token: ${sessionToken ? `EXISTS (${sessionToken.substring(0, 16)}...)` : "MISSING"} | CookieCount: ${allCookies.length}`)
 
     if (!sessionToken) {
-      console.log("[getCurrentUser] No session token found")
+      console.log(`[getCurrentUser] RESULT: NO_TOKEN | CookieNames: ${allCookies.map(c => c.name).join(",") || "none"}`)
       return null
     }
 
@@ -33,6 +29,7 @@ export async function getCurrentUser() {
     )
 
     // Get session from database
+    console.log(`[getCurrentUser] QUERY | Token: ${sessionToken.substring(0, 16)}...`)
     const { data: session, error: sessionError } = await supabase
       .from("sessions")
       .select("*")
@@ -41,11 +38,13 @@ export async function getCurrentUser() {
       .single()
 
     if (sessionError || !session) {
-      console.log("[getCurrentUser] Session not found or expired:", sessionError?.message || "no session")
+      const errorMsg = sessionError?.message || "NOT_FOUND"
+      const errorCode = sessionError?.code || "NONE"
+      console.log(`[getCurrentUser] RESULT: NO_SESSION | ErrorCode=${errorCode} ErrorMsg=${errorMsg}`)
       return null
     }
 
-    console.log("[getCurrentUser] Session found for user_id:", session.user_id)
+    console.log(`[getCurrentUser] RESULT: SESSION_FOUND | UserID=${session.user_id}`)
 
     // Get user data
     const { data: user, error: userError } = await supabase
@@ -55,11 +54,12 @@ export async function getCurrentUser() {
       .single()
 
     if (userError || !user) {
-      console.log("[getCurrentUser] User not found:", userError?.message || "no user")
+      const errorMsg = userError?.message || "NOT_FOUND"
+      console.log(`[getCurrentUser] RESULT: NO_USER | ErrorMsg=${errorMsg}`)
       return null
     }
 
-    console.log("[getCurrentUser] User found:", user.email)
+    console.log(`[getCurrentUser] RESULT: USER_FOUND | Email=${user.email} | ID=${user.id}`)
     // Return user data
     return user
   } catch (error) {

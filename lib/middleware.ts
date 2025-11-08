@@ -74,7 +74,7 @@ export async function updateSession(request: NextRequest) {
 
     // Query session - we'll log it separately below
 
-    console.log("[MIDDLEWARE] 🚀 VERIFYING SESSION | Path:", request.nextUrl.pathname, "| Token:", sessionToken.substring(0, 12) + "...")
+    console.log(`[MIDDLEWARE] 🔍 QUERY START | Path: ${request.nextUrl.pathname} | Token: ${sessionToken.substring(0, 16)}...`)
     
     const sessionResult = await supabase
       .from("sessions")
@@ -86,13 +86,14 @@ export async function updateSession(request: NextRequest) {
     const session = sessionResult.data
     const error = sessionResult.error
     
-    // Single line log for better visibility in Vercel
+    // Force single line logs that will definitely show
     if (session) {
       const isExpired = new Date(session.expires_at) < new Date()
-      console.log(`[MIDDLEWARE] ✅ SESSION FOUND | User: ${session.user_id} | Expired: ${isExpired ? "YES" : "NO"} | Path: ${request.nextUrl.pathname}`)
+      console.log(`[MIDDLEWARE] RESULT: SESSION_FOUND UserID=${session.user_id} Expired=${isExpired} Path=${request.nextUrl.pathname}`)
     } else {
-      const errorMsg = error ? error.message : "Not found"
-      console.log(`[MIDDLEWARE] ❌ NO SESSION | Error: ${errorMsg} | Path: ${request.nextUrl.pathname}`)
+      const errorCode = error?.code || "NONE"
+      const errorMsg = error?.message || "NOT_FOUND"
+      console.log(`[MIDDLEWARE] RESULT: NO_SESSION ErrorCode=${errorCode} ErrorMsg=${errorMsg} Path=${request.nextUrl.pathname}`)
     }
 
     // If session is invalid, redirect to login (but allow public routes)
@@ -103,14 +104,14 @@ export async function updateSession(request: NextRequest) {
         !request.nextUrl.pathname.startsWith("/sign-up")
       
       if (isProtected) {
-        console.log(`[MIDDLEWARE] ❌ REDIRECT | From: ${request.nextUrl.pathname} | To: /auth/login | Reason: Invalid session`)
+        console.log(`[MIDDLEWARE] ACTION: REDIRECT From=${request.nextUrl.pathname} To=/auth/login`)
         const url = request.nextUrl.clone()
         url.pathname = "/auth/login"
         return NextResponse.redirect(url)
       }
-      console.log(`[MIDDLEWARE] ✅ ALLOW | Path: ${request.nextUrl.pathname} | Reason: Public route`)
+      console.log(`[MIDDLEWARE] ACTION: ALLOW Path=${request.nextUrl.pathname} Reason=PublicRoute`)
     } else {
-      console.log(`[MIDDLEWARE] ✅ ALLOW | Path: ${request.nextUrl.pathname} | User: ${session.user_id} | Session valid`)
+      console.log(`[MIDDLEWARE] ACTION: ALLOW Path=${request.nextUrl.pathname} UserID=${session.user_id} SessionValid=YES`)
     }
   } catch (error) {
     // If there's an error verifying session, allow the request to proceed
