@@ -78,6 +78,7 @@ export default function LoginPage() {
       }
       
       console.log("[CLIENT FLOW] ✅ STEP 3: LOGIN API SUCCESS")
+      console.log("[CLIENT FLOW] User from response:", data.user)
       
       // Check if cookie was set in response
       const setCookieHeader = res.headers.get("set-cookie")
@@ -87,11 +88,18 @@ export default function LoginPage() {
       if (!setCookieHeader) {
         console.log("[CLIENT FLOW] ⚠️  WARNING: Set-Cookie header not found in response!")
         console.log("[CLIENT FLOW] This might be because browser doesn't expose Set-Cookie header to JavaScript")
+        console.log("[CLIENT FLOW] Cookie should still be set by browser automatically")
       }
       
       // Verify cookie is set by checking with debug endpoint
       console.log("[CLIENT FLOW] 🚀 STEP 4: VERIFYING COOKIE WITH DEBUG ENDPOINT...")
+      let redirectExecuted = false
+      
       const verifyCookie = async (attempt = 1) => {
+        if (redirectExecuted) {
+          console.log("[CLIENT FLOW] Redirect already executed, skipping verification")
+          return
+        }
         try {
           console.log(`[CLIENT FLOW] Cookie verification attempt ${attempt}...`)
           const debugRes = await fetch("/api/debug/session", {
@@ -107,8 +115,14 @@ export default function LoginPage() {
           if (debugData.cookies.sessionToken) {
             console.log("[CLIENT FLOW] ✅ STEP 5: COOKIE VERIFIED!")
             console.log("[CLIENT FLOW] Session Token:", debugData.cookies.sessionToken)
+            console.log("[CLIENT FLOW] Session Exists:", debugData.session.exists)
+            console.log("[CLIENT FLOW] User Exists:", debugData.user.exists)
             console.log("[CLIENT FLOW] 🚀 STEP 6: REDIRECTING TO DASHBOARD...")
-            window.location.href = "/dashboard"
+            console.log("[CLIENT FLOW] Using window.location.replace() for clean redirect...")
+            redirectExecuted = true
+            // Use replace instead of href to avoid adding to history
+            window.location.replace("/dashboard")
+            return // Important: return to prevent further execution
           } else {
             console.log(`[CLIENT FLOW] ⚠️  Cookie not found (attempt ${attempt})`)
             if (attempt < 5) {
@@ -116,16 +130,26 @@ export default function LoginPage() {
               setTimeout(() => verifyCookie(attempt + 1), 500)
             } else {
               console.log("[CLIENT FLOW] ❌ ERROR: Cookie verification failed after 5 attempts")
-              console.log("[CLIENT FLOW] Redirecting anyway...")
-              window.location.href = "/dashboard"
+              console.log("[CLIENT FLOW] Debug Data:", debugData)
+              console.log("[CLIENT FLOW] Redirecting anyway (cookie might be set but not readable)...")
+              if (!redirectExecuted) {
+                redirectExecuted = true
+                window.location.replace("/dashboard")
+              }
+              return
             }
           }
         } catch (err) {
           console.error("[CLIENT FLOW] ❌ ERROR: Cookie verification failed:", err)
+          console.log("[CLIENT FLOW] Error details:", err)
           console.log("[CLIENT FLOW] Redirecting anyway after 1 second...")
-          setTimeout(() => {
-            window.location.href = "/dashboard"
-          }, 1000)
+          if (!redirectExecuted) {
+            setTimeout(() => {
+              console.log("[CLIENT FLOW] Force redirecting to dashboard...")
+              redirectExecuted = true
+              window.location.replace("/dashboard")
+            }, 1000)
+          }
         }
       }
       

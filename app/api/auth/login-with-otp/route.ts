@@ -241,14 +241,12 @@ export async function POST(request: NextRequest) {
       
       console.log("[LOGIN FLOW] Cookie Options:", JSON.stringify(cookieOptions, null, 2))
       
-      // Set cookie using NextResponse cookies API
+      // Set cookie using NextResponse cookies API (this is the correct way)
       response.cookies.set("session_token", sessionToken, cookieOptions)
       console.log("[LOGIN FLOW] ✅ Cookie set using response.cookies.set()")
       
-      // Also set cookie in response headers directly as backup
-      const setCookieValue = `session_token=${sessionToken}; Path=/; HttpOnly; ${isProduction ? 'Secure; ' : ''}SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Expires=${sessionExpiresAt.toUTCString()}`
-      response.headers.append("Set-Cookie", setCookieValue)
-      console.log("[LOGIN FLOW] ✅ Cookie also set using headers.append()")
+      // Don't set duplicate cookie - NextResponse.cookies.set() already handles it
+      // Setting duplicate can cause browser issues
       
       // Verify cookie was set
       const setCookieHeader = response.headers.get("set-cookie")
