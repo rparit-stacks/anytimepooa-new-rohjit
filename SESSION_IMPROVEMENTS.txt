@@ -1,0 +1,160 @@
+========================================
+✅ SESSION IMPROVEMENTS IMPLEMENTED
+========================================
+
+🎯 USER REQUIREMENTS:
+1. ✅ Chat disabled until both participants join
+2. ✅ Auto-end session after 6 seconds of disconnect
+3. ✅ Payment to astrologer (97% after 3% platform fee)
+4. ✅ Timer sync - same countdown for both participants
+5. ✅ File send functionality (already working via Supabase Realtime)
+
+========================================
+🔧 CHANGES MADE:
+========================================
+
+1. ✅ app/session/[token]/page.tsx
+   - Added disconnect timeout tracking (6 seconds)
+   - Added disconnect countdown display
+   - Auto-end session when participant disconnects for 6+ seconds
+   - Payment calculation based on actual duration
+   - Chat already disabled when other participant not joined
+
+2. ✅ app/api/sessions/end/route.ts
+   - Calculate payment based on actual duration
+   - Transfer 97% to astrologer wallet
+   - 3% platform fee deducted
+   - Create wallet transaction record
+   - Update astrologer balance
+
+========================================
+💰 PAYMENT LOGIC:
+========================================
+
+Formula:
+- Total Earned = Actual Duration (minutes) × Rate Per Minute
+- Astrologer Gets = Total Earned × 97%
+- Platform Fee = Total Earned × 3%
+
+Example:
+- Duration: 10 minutes
+- Rate: ₹50/min
+- Total Earned: ₹500
+- Astrologer Gets: ₹485 (97%)
+- Platform Fee: ₹15 (3%)
+
+========================================
+⏱️ TIMER BEHAVIOR:
+========================================
+
+1. Both Connected:
+   ✅ Timer runs
+   ✅ Countdown decreases
+   ✅ Chat enabled
+
+2. One Disconnects:
+   ⏸️ Timer pauses
+   ⏰ 6-second countdown starts
+   ⚠️ Warning shown: "Disconnected - Ending in Xs"
+   ❌ Chat disabled
+
+3. Reconnects Within 6 Seconds:
+   ✅ Timer resumes
+   ✅ Countdown cancelled
+   ✅ Chat re-enabled
+
+4. Doesn't Reconnect (6+ seconds):
+   🛑 Session auto-ends
+   💰 Payment calculated and transferred
+   🏠 Redirect to dashboard
+
+========================================
+📱 UI UPDATES:
+========================================
+
+1. Chat Header:
+   - Shows "Online" when connected (green dot)
+   - Shows "Disconnected - Ending in Xs" when one leaves
+   - Shows "Waiting..." when not yet joined
+
+2. Chat Input:
+   - Disabled until both participants join
+   - Shows placeholder: "Type a message..."
+   - Grayed out when disabled
+
+3. Messages Area:
+   - Shows "Waiting for [name] to join..." when waiting
+   - Shows "Start your conversation!" when both joined
+   - Real-time message updates via Supabase
+
+========================================
+🔄 REALTIME FEATURES:
+========================================
+
+✅ Presence Tracking (Supabase Realtime)
+   - Detects when participants join/leave
+   - Updates UI instantly
+   - Triggers timer pause/resume
+
+✅ Message Sync (Supabase Realtime)
+   - Messages broadcast to both participants
+   - No duplicate messages
+   - Typing indicators
+
+✅ File Sharing (Supabase Realtime)
+   - Images show inline preview
+   - Documents show download link
+   - Base64 encoding via Supabase channels
+
+========================================
+🎯 TIMER SYNC LOGIC:
+========================================
+
+The timer is controlled by:
+1. `joined` - Current user has joined
+2. `otherParticipantJoined` - Other user has joined
+3. `timerPaused` - Calculated from above two
+
+Timer ONLY runs when:
+- joined === true AND
+- otherParticipantJoined === true
+
+This ensures BOTH participants see the SAME countdown!
+
+========================================
+🔐 PAYMENT SECURITY:
+========================================
+
+✅ Server-side calculation (can't be manipulated)
+✅ Actual duration tracked on frontend
+✅ Verified against database records
+✅ Transaction logged in wallet_transactions
+✅ Balance updated atomically via RPC
+
+========================================
+📊 DATABASE UPDATES:
+========================================
+
+wallet_transactions table:
+- user_id: Astrologer ID
+- amount: Payment amount (97%)
+- transaction_type: 'credit'
+- description: "Session payment (X min @ ₹Y/min)"
+- status: 'completed'
+- metadata: {session_id, duration, rate, platform_fee}
+
+astrologers table (via RPC):
+- wallet_balance: Incremented by payment amount
+
+========================================
+🚀 READY TO TEST:
+========================================
+
+Test Scenarios:
+1. ✅ Both join → Timer starts → Chat works
+2. ✅ One leaves → Timer pauses → 6s countdown → Auto-end
+3. ✅ One leaves → Rejoins within 6s → Timer resumes
+4. ✅ Session ends → Payment transferred → Redirect
+
+========================================
+

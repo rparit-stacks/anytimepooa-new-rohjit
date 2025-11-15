@@ -71,6 +71,10 @@ export default function SessionRoom() {
   
   // Typing timeout
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Disconnect timeout (5-6 seconds)
+  const disconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [disconnectCountdown, setDisconnectCountdown] = useState(0);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -118,12 +122,45 @@ export default function SessionRoom() {
     return () => clearInterval(interval);
   }, [joined, otherParticipantJoined, timerPaused]);
 
-  // Update timer pause state based on connection
+  // Update timer pause state based on connection + Auto-end on disconnect
   useEffect(() => {
     if (joined && otherParticipantJoined) {
-      setTimerPaused(false); // Both connected - start timer
-    } else if (joined) {
-      setTimerPaused(true); // Only one connected - pause timer
+      // Both connected - start timer and clear disconnect timeout
+      setTimerPaused(false);
+      setDisconnectCountdown(0);
+      if (disconnectTimeoutRef.current) {
+        clearTimeout(disconnectTimeoutRef.current);
+        disconnectTimeoutRef.current = null;
+      }
+    } else if (joined && !otherParticipantJoined) {
+      // One disconnected - pause timer and start 6-second countdown
+      setTimerPaused(true);
+      
+      // Start disconnect countdown
+      setDisconnectCountdown(6);
+      let countdown = 6;
+      
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        setDisconnectCountdown(countdown);
+        
+        if (countdown <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+      
+      // Auto-end session after 6 seconds
+      disconnectTimeoutRef.current = setTimeout(async () => {
+        console.log('⏰ 6 seconds passed, auto-ending session...');
+        await endSessionWithPayment();
+      }, 6000);
+      
+      return () => {
+        clearInterval(countdownInterval);
+        if (disconnectTimeoutRef.current) {
+          clearTimeout(disconnectTimeoutRef.current);
+        }
+      };
     }
   }, [joined, otherParticipantJoined]);
 
@@ -302,26 +339,36 @@ export default function SessionRoom() {
     setNewMessage('');
   };
 
-  const endSession = async () => {
+  // End session with payment calculation
+  const endSessionWithPayment = async () => {
     try {
       // Leave Agora channel (only for voice/video)
       if (sessionData && (sessionData.sessionType === 'voice' || sessionData.sessionType === 'video')) {
         await agora.leave();
       }
 
-      // Supabase Realtime will auto-cleanup on unmount (no manual disconnect needed)
+      // Calculate actual session duration and payment
+      const actualDurationMinutes = Math.ceil(elapsedTime / 60);
+      
+      console.log('💰 Ending session with payment:', {
+        elapsedTime,
+        actualDurationMinutes,
+        sessionId: sessionData?.sessionId
+      });
 
-      // End session in database
+      // End session in database with payment calculation
       await fetch('/api/sessions/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           sessionId: sessionData?.sessionId,
-          reason: 'completed'
+          reason: 'completed',
+          actualDurationMinutes,
+          elapsedSeconds: elapsedTime
         })
       });
 
-      // Redirect based on participant type - use window.location for astrologer to bypass middleware
+      // Redirect based on participant type
       if (sessionData?.participantType === 'astrologer') {
         window.location.href = '/astrologer-portal/dashboard';
       } else {
@@ -336,6 +383,11 @@ export default function SessionRoom() {
         router.push('/dashboard');
       }
     }
+  };
+
+  // Manual end session (same as auto-end but user-triggered)
+  const endSession = async () => {
+    await endSessionWithPayment();
   };
 
   const formatTime = (seconds: number) => {
@@ -553,8 +605,12 @@ export default function SessionRoom() {
                         <span className="flex items-center">
                           <span className="w-2 h-2 bg-green-400 rounded-full mr-1 animate-pulse"></span>
                           Online
-                </span>
+                        </span>
                       )
+                    ) : disconnectCountdown > 0 ? (
+                      <span className="text-yellow-300 font-semibold animate-pulse">
+                        ⚠️ Disconnected - Ending in {disconnectCountdown}s
+                      </span>
                     ) : (
                       'Waiting...'
                     )}
