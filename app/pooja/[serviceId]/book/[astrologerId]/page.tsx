@@ -123,7 +123,7 @@ export default function PoojaBookingPage() {
       const walletData = await walletResponse.json()
       const currentBalance = walletData.balance || 0
 
-      if (currentBalance < bookingData.total_amount) {
+      if (bookingData && currentBalance < bookingData.total_amount) {
         const shortfall = bookingData.total_amount - currentBalance
         if (confirm(`Insufficient wallet balance!\n\nRequired: ₹${bookingData.total_amount}\nAvailable: ₹${currentBalance}\nShortfall: ₹${shortfall.toFixed(2)}\n\nWould you like to recharge your wallet?`)) {
           router.push("/wallet/add-money")

@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser()
@@ -11,12 +11,13 @@ export async function GET(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
     const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('session_recordings')
       .select('*')
-      .eq('booking_id', params.id)
+      .eq('booking_id', id)
       .eq('recording_status', 'completed')
       .single()
 

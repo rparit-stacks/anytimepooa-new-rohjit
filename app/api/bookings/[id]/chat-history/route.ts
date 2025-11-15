@@ -2,9 +2,10 @@ import { createClient } from "@/lib/server"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -18,7 +19,7 @@ export async function GET(
         user:users!session_messages_sender_id_fkey(full_name),
         astrologer:astrologers!session_messages_sender_id_fkey(name)
       `)
-      .eq('booking_id', params.id)
+      .eq('booking_id', id)
       .order('created_at', { ascending: true })
 
     if (error) throw error

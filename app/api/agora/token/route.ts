@@ -28,13 +28,15 @@ export async function POST(request: NextRequest) {
     const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 
     // Build token
+    // buildTokenWithUid(appId, appCertificate, channelName, uid, role, tokenExpire, privilegeExpire)
     const token = RtcTokenBuilder.buildTokenWithUid(
       appId,
       appCertificate,
       channelName,
       uid || 0,
       role === 'publisher' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER,
-      privilegeExpiredTs
+      expirationTimeInSeconds, // token expire time
+      privilegeExpiredTs // privilege expire timestamp
     );
 
     console.log('✅ Agora token generated:', {

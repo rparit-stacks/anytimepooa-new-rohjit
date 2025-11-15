@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     const otherParticipantName = isUser 
-      ? otherParticipant?.name 
-      : otherParticipant?.full_name;
+      ? (otherParticipant as any)?.name 
+      : (otherParticipant as any)?.full_name;
 
     return NextResponse.json({
       valid: true,

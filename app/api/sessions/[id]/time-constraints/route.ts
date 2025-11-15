@@ -2,15 +2,16 @@ import { createClient } from "@/lib/server"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     const { data: tracking, error } = await supabase
       .from('session_tracking')
       .select('*')
-      .eq('session_id', params.id)
+      .eq('session_id', id)
       .single()
 
     if (error) throw error

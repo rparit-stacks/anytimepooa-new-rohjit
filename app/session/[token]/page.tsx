@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAgora } from '@/hooks/useAgora';
 import AgoraVideoCall from '@/components/AgoraVideoCall';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 
 interface SessionData {
   sessionId: string;
@@ -64,18 +65,31 @@ export default function SessionRoom() {
   const [timerPaused, setTimerPaused] = useState(true);
   
   // Chat
-  const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [otherPersonTyping, setOtherPersonTyping] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   
   // Typing timeout
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refs
-  const socketRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Supabase Realtime for chat (replaces Socket.IO)
+  // ALWAYS call hook (React Hooks rule), but only use when sessionData is ready
+  const realtime = useSupabaseRealtime({
+    roomId: sessionData?.roomId || 'temp',
+    participantType: sessionData?.participantType || 'user',
+    participantId: sessionData?.participantId || 'temp',
+    onUserJoined: () => {
+      console.log('✅ Other participant joined (Supabase)');
+      setOtherParticipantJoined(true);
+    },
+    onUserLeft: () => {
+      console.log('❌ Other participant left (Supabase)');
+      setOtherParticipantJoined(false);
+    }
+  });
 
   // Validate session on mount
   useEffect(() => {
@@ -115,10 +129,10 @@ export default function SessionRoom() {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && realtime) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [realtime?.messages]);
 
   const validateSession = async () => {
     try {
@@ -165,62 +179,8 @@ export default function SessionRoom() {
         }
       }
 
-      // SECOND: Initialize Socket.IO connection
-      console.log('🔌 Step 2: Connecting to socket server...');
-      const { io } = await import('socket.io-client');
-      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001');
-
-      // Join room
-      socketRef.current.emit('join-room', {
-        roomId: sessionData.roomId,
-        participantType: sessionData.participantType,
-        sessionType: sessionData.sessionType
-      });
-
-      // Listen for other participant joined
-      socketRef.current.on('participant-joined', ({ participantType, totalParticipants }: any) => {
-        console.log('Participant joined:', participantType, 'Total:', totalParticipants);
-        if (participantType !== sessionData.participantType) {
-          setOtherParticipantJoined(true);
-        }
-      });
-
-      // Listen for both participants ready
-      socketRef.current.on('both-participants-ready', () => {
-        console.log('✓✓ Both participants ready!');
-        setOtherParticipantJoined(true);
-      });
-
-      // Listen for participant left
-      socketRef.current.on('participant-left', ({ participantType }: any) => {
-        console.log('Participant left:', participantType);
-        if (participantType !== sessionData.participantType) {
-          setOtherParticipantJoined(false);
-        }
-      });
-
-      // Listen for messages (for chat)
-      socketRef.current.on('message', (message: any) => {
-        setMessages(prev => [...prev, message]);
-      });
-
-      // Listen for typing indicator
-      socketRef.current.on('typing', ({ participantType }: any) => {
-        if (participantType !== sessionData.participantType) {
-          setOtherPersonTyping(true);
-        }
-      });
-
-      socketRef.current.on('stop-typing', ({ participantType }: any) => {
-        if (participantType !== sessionData.participantType) {
-          setOtherPersonTyping(false);
-        }
-      });
-
-      console.log('✅ Step 2 Complete: Socket connected');
-
-      // THIRD: Mark as joined in database
-      console.log('💾 Step 3: Marking as joined in database...');
+      // SECOND: Mark as joined in database (Supabase Realtime handles presence automatically)
+      console.log('💾 Step 2: Marking as joined in database...');
       await fetch('/api/sessions/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -230,9 +190,9 @@ export default function SessionRoom() {
         })
       });
 
-      console.log('✅ Step 3 Complete: Marked as joined');
+      console.log('✅ Step 2 Complete: Marked as joined');
       setJoined(true);
-      console.log('🎉 Session joined successfully!');
+      console.log('🎉 Session joined successfully! (Using Supabase Realtime)');
     } catch (err) {
       console.error('❌ Failed to join session:', err);
       setError('Failed to join session');
@@ -252,18 +212,15 @@ export default function SessionRoom() {
     }
   };
 
-  const handleTyping = (value: string) => {
+  const handleTyping = async (value: string) => {
     setNewMessage(value);
     
-    if (!socketRef.current || !sessionData) return;
+    if (!realtime || !sessionData) return;
     
     // Emit typing event
     if (value.length > 0 && !isTyping) {
       setIsTyping(true);
-      socketRef.current.emit('typing', {
-        roomId: sessionData.roomId,
-        participantType: sessionData.participantType
-      });
+      await realtime.sendTyping();
     }
     
     // Clear previous timeout
@@ -272,44 +229,39 @@ export default function SessionRoom() {
     }
     
     // Set new timeout to stop typing
-    typingTimeoutRef.current = setTimeout(() => {
+    typingTimeoutRef.current = setTimeout(async () => {
       setIsTyping(false);
-      if (socketRef.current) {
-        socketRef.current.emit('stop-typing', {
-          roomId: sessionData.roomId,
-          participantType: sessionData.participantType
-        });
+      if (realtime) {
+        await realtime.stopTyping();
       }
     }, 1000);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !socketRef.current || !sessionData) return;
+    if (!file || !realtime || !sessionData) return;
 
     setUploadingFile(true);
 
     try {
       // Convert file to base64
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         const base64 = reader.result as string;
         
-        const fileMessage = {
-          roomId: sessionData.roomId,
-          senderId: sessionData.participantId,
-          senderType: sessionData.participantType,
+        // Send file message via Supabase Realtime
+        await realtime.sendMessage({
+          room_id: sessionData.roomId,
+          sender_id: sessionData.participantId,
+          sender_type: sessionData.participantType,
           message: file.name,
-          fileData: base64,
-          fileType: file.type,
-          fileName: file.name,
-          fileSize: file.size,
-          isFile: true,
-          timestamp: new Date().toISOString()
-        };
-
-        // Emit file message
-        socketRef.current.emit('message', fileMessage);
+          file_data: base64,
+          file_type: file.type,
+          file_name: file.name,
+          file_size: file.size,
+          is_file: true,
+        });
+        
         setUploadingFile(false);
       };
 
@@ -328,30 +280,25 @@ export default function SessionRoom() {
     e.target.value = '';
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim() || !socketRef.current || !sessionData) return;
-
-    const message = {
-      roomId: sessionData.roomId,
-      senderId: sessionData.participantId,
-      senderType: sessionData.participantType,
-      message: newMessage,
-      isFile: false,
-      timestamp: new Date().toISOString()
-    };
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !realtime || !sessionData) return;
 
     // Stop typing indicator
     setIsTyping(false);
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    socketRef.current.emit('stop-typing', {
-      roomId: sessionData.roomId,
-      participantType: sessionData.participantType
+    await realtime.stopTyping();
+
+    // Send message via Supabase Realtime
+    await realtime.sendMessage({
+      room_id: sessionData.roomId,
+      sender_id: sessionData.participantId,
+      sender_type: sessionData.participantType,
+      message: newMessage,
+      is_file: false,
     });
 
-    // Only emit, don't add to local state (socket will send it back)
-    socketRef.current.emit('message', message);
     setNewMessage('');
   };
 
@@ -362,10 +309,7 @@ export default function SessionRoom() {
         await agora.leave();
       }
 
-      // Disconnect socket
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      // Supabase Realtime will auto-cleanup on unmount (no manual disconnect needed)
 
       // End session in database
       await fetch('/api/sessions/end', {
@@ -453,8 +397,8 @@ export default function SessionRoom() {
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <span className="text-gray-600">Session Type</span>
               <span className="font-semibold text-gray-900 capitalize">{sessionData.sessionType}</span>
-            </div>
-            
+          </div>
+          
             {/* Permission Notice */}
             {(sessionData.sessionType === 'voice' || sessionData.sessionType === 'video') && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
@@ -523,12 +467,12 @@ export default function SessionRoom() {
                     <li>Change to "Allow"</li>
                     <li>Refresh the page or click "Try Again"</li>
                   </ol>
-                </div>
+            </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+            </div>
+          )}
 
       {/* Header - Full Width */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
@@ -592,13 +536,13 @@ export default function SessionRoom() {
                   </div>
                   {otherParticipantJoined && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
-                  )}
-                </div>
+                )}
+              </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-white truncate">{sessionData.otherParticipantName}</h3>
                   <p className="text-xs sm:text-sm text-orange-100">
                     {otherParticipantJoined ? (
-                      otherPersonTyping ? (
+                      realtime?.otherPersonTyping ? (
                         <span className="flex items-center">
                           <span className="typing-dots mr-1">
                             <span></span><span></span><span></span>
@@ -633,7 +577,7 @@ export default function SessionRoom() {
                 </div>
               )}
               
-              {messages.length === 0 && otherParticipantJoined ? (
+              {(!realtime?.messages || realtime.messages.length === 0) && otherParticipantJoined ? (
                 <div className="text-center text-gray-500 mt-8">
                   <div className="bg-white rounded-lg p-6 inline-block shadow-sm">
                     <MessageSquare className="w-12 h-12 mx-auto mb-2 text-orange-400" />
@@ -641,35 +585,35 @@ export default function SessionRoom() {
                   </div>
                 </div>
               ) : (
-                messages.map((msg, idx) => (
+                realtime?.messages.map((msg, idx) => (
                   <div
                     key={idx}
-                    className={`flex ${msg.senderType === sessionData.participantType ? 'justify-end' : 'justify-start'} animate-fadeIn`}
+                    className={`flex ${msg.sender_type === sessionData.participantType ? 'justify-end' : 'justify-start'} animate-fadeIn`}
                   >
                     <div
                       className={`max-w-[75%] sm:max-w-md px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg shadow-sm ${
-                        msg.senderType === sessionData.participantType
+                        msg.sender_type === sessionData.participantType
                           ? 'bg-orange-500 text-white rounded-br-none'
                           : 'bg-white text-gray-900 rounded-bl-none'
                       }`}
                     >
-                      {msg.isFile ? (
+                      {msg.is_file ? (
                         <div className="space-y-2">
-                          {msg.fileType?.startsWith('image/') ? (
+                          {msg.file_type?.startsWith('image/') ? (
                             <div className="rounded-lg overflow-hidden">
                               <img 
-                                src={msg.fileData} 
-                                alt={msg.fileName}
+                                src={msg.file_data} 
+                                alt={msg.file_name}
                                 className="max-w-full h-auto max-h-64 object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => window.open(msg.fileData, '_blank')}
+                                onClick={() => window.open(msg.file_data, '_blank')}
                               />
                             </div>
                           ) : (
                             <a 
-                              href={msg.fileData} 
-                              download={msg.fileName}
+                              href={msg.file_data} 
+                              download={msg.file_name}
                               className={`flex items-center space-x-2 p-2 rounded-lg hover:opacity-80 transition-opacity ${
-                                msg.senderType === sessionData.participantType
+                                msg.sender_type === sessionData.participantType
                                   ? 'bg-orange-600'
                                   : 'bg-gray-100'
                               }`}
@@ -678,8 +622,8 @@ export default function SessionRoom() {
                                 <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
                               </svg>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{msg.fileName}</p>
-                                <p className="text-xs opacity-75">{(msg.fileSize / 1024).toFixed(1)} KB</p>
+                                <p className="text-sm font-medium truncate">{msg.file_name}</p>
+                                <p className="text-xs opacity-75">{msg.file_size ? (msg.file_size / 1024).toFixed(1) : '0'} KB</p>
                               </div>
                               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -692,14 +636,14 @@ export default function SessionRoom() {
                       )}
                       <div className={`flex items-center justify-end space-x-1 mt-1`}>
                         <p className={`text-[10px] sm:text-xs ${
-                          msg.senderType === sessionData.participantType ? 'text-orange-100' : 'text-gray-500'
+                          msg.sender_type === sessionData.participantType ? 'text-orange-100' : 'text-gray-500'
                         }`}>
                           {new Date(msg.timestamp).toLocaleTimeString('en-US', { 
                             hour: '2-digit', 
-                            minute: '2-digit' 
+                            minute: '2-digit'
                           })}
                         </p>
-                        {msg.senderType === sessionData.participantType && (
+                        {msg.sender_type === sessionData.participantType && (
                           <svg className="w-4 h-4 text-orange-100" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
                           </svg>

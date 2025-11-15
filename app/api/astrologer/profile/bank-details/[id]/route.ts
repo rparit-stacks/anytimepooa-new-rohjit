@@ -4,7 +4,7 @@ import { cookies } from "next/headers"
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
@@ -26,10 +26,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
 
+    const { id } = await params
+
     const { error } = await supabase
       .from("astrologer_bank_details")
       .delete()
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("astrologer_id", session.astrologer_id)
 
     if (error) {
