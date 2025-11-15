@@ -59,12 +59,54 @@ export default function AstrologerBookingsPage() {
     setFilteredBookings(filtered)
   }, [bookings, filter])
 
-  // Helper function to check if session link is still valid
-  const isSessionLinkValid = (booking: Booking) => {
-    if (!booking.link_valid_until) return false
+  // Helper function to check if Join button should be visible (5 min before, 10 min after)
+  const canJoinSession = (booking: Booking) => {
+    if (!booking.scheduled_start_time || booking.status !== "confirmed") return false
+    
     const now = new Date()
-    const validUntil = new Date(booking.link_valid_until)
-    return validUntil > now
+    const scheduledTime = new Date(booking.scheduled_start_time)
+    
+    // 5 minutes before scheduled time
+    const fiveMinutesBefore = new Date(scheduledTime.getTime() - 5 * 60 * 1000)
+    // 10 minutes after scheduled time
+    const tenMinutesAfter = new Date(scheduledTime.getTime() + 10 * 60 * 1000)
+    
+    // Button visible from 5 min before to 10 min after
+    return now >= fiveMinutesBefore && now <= tenMinutesAfter
+  }
+
+  // Helper function to check if booking is expired (10+ min after scheduled time)
+  const isBookingExpired = (booking: Booking) => {
+    if (!booking.scheduled_start_time) return false
+    if (booking.status === "completed" || booking.status === "cancelled") return false
+    
+    const now = new Date()
+    const scheduledTime = new Date(booking.scheduled_start_time)
+    const tenMinutesAfter = new Date(scheduledTime.getTime() + 10 * 60 * 1000)
+    
+    // Expired if current time is more than 10 minutes after scheduled time
+    return now > tenMinutesAfter
+  }
+
+  // Helper function to get time until join button becomes active
+  const getTimeUntilActive = (booking: Booking) => {
+    if (!booking.scheduled_start_time) return null
+    
+    const now = new Date()
+    const scheduledTime = new Date(booking.scheduled_start_time)
+    const fiveMinutesBefore = new Date(scheduledTime.getTime() - 5 * 60 * 1000)
+    
+    if (now >= fiveMinutesBefore) return null
+    
+    const diffMs = fiveMinutesBefore.getTime() - now.getTime()
+    const diffMins = Math.ceil(diffMs / 60000)
+    
+    if (diffMins > 60) {
+      const hours = Math.floor(diffMins / 60)
+      const mins = diffMins % 60
+      return `${hours}h ${mins}m`
+    }
+    return `${diffMins}m`
   }
 
   const fetchBookings = async () => {
@@ -346,16 +388,37 @@ export default function AstrologerBookingsPage() {
                 </div>
               )}
 
-              {/* Join Session Button - Only show if link is valid and not expired */}
-              {booking.session_link && booking.status === "confirmed" && isSessionLinkValid(booking) && (
+              {/* Join Session Button - Time-based visibility (5 min before, 10 min after) */}
+              {booking.session_link && booking.status === "confirmed" && !isBookingExpired(booking) && (
                 <div className="pt-4 border-t border-gray-100">
-                  <Link
-                    href={booking.session_link}
-                    className="block w-full py-3 bg-gradient-to-r from-[#ff6f1e] to-[#ff8c42] hover:from-[#ff5f0e] hover:to-[#ff7c32] text-white font-semibold rounded-xl transition-all transform active:scale-95 shadow-lg text-center"
-                  >
-                    <i className="fas fa-video mr-2"></i>
-                    Join Session
-                  </Link>
+                  {canJoinSession(booking) ? (
+                    <Link
+                      href={booking.session_link}
+                      className="block w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all transform active:scale-95 shadow-lg text-center animate-pulse"
+                    >
+                      <i className="fas fa-video mr-2"></i>
+                      Join Session Now
+                    </Link>
+                  ) : (
+                    <button
+                      disabled
+                      className="block w-full py-3 bg-gray-300 text-gray-600 font-semibold rounded-xl cursor-not-allowed opacity-60 text-center"
+                      title={`Available in ${getTimeUntilActive(booking)}`}
+                    >
+                      <i className="fas fa-clock mr-2"></i>
+                      {getTimeUntilActive(booking) ? `Available in ${getTimeUntilActive(booking)}` : 'Not Available Yet'}
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {/* Show expired status */}
+              {booking.status === "confirmed" && isBookingExpired(booking) && (
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="block w-full py-3 bg-red-100 text-red-700 font-semibold rounded-xl text-center">
+                    <i className="fas fa-times-circle mr-2"></i>
+                    Session Expired (Auto-cancelling...)
+                  </div>
                 </div>
               )}
               

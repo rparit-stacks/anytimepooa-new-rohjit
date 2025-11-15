@@ -66,6 +66,54 @@ export default function BookingsPage() {
     fetchBookings()
   }, [router])
 
+  // Auto-cancel expired bookings (check every 30 seconds)
+  useEffect(() => {
+    const checkAndCancelExpired = async () => {
+      for (const booking of bookings) {
+        if (isBookingExpired(booking) && booking.status === "confirmed") {
+          console.log(`🔴 Auto-cancelling expired booking: ${booking.id}`)
+          
+          try {
+            const response = await fetch(`/api/bookings/${booking.id}/cancel`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                reason: "Auto-cancelled: Session window expired (10 minutes after scheduled time)",
+                auto_cancel: true
+              }),
+            })
+
+            if (response.ok) {
+              console.log(`✅ Auto-cancelled booking ${booking.id}`)
+              
+              // Refresh bookings
+              const bookingsResponse = await fetch("/api/bookings")
+              if (bookingsResponse.ok) {
+                const data = await bookingsResponse.json()
+                const sortedBookings = (data.data || []).sort((a: Booking, b: Booking) => {
+                  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                })
+                setBookings(sortedBookings)
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to auto-cancel booking ${booking.id}:`, error)
+          }
+        }
+      }
+    }
+
+    // Check immediately
+    checkAndCancelExpired()
+
+    // Then check every 30 seconds
+    const interval = setInterval(checkAndCancelExpired, 30000)
+
+    return () => clearInterval(interval)
+  }, [bookings])
+
   // Filter bookings based on selected filter
   useEffect(() => {
     const now = new Date()
@@ -89,20 +137,66 @@ export default function BookingsPage() {
     setFilteredBookings(filtered)
   }, [bookings, filter])
 
-  // Helper function to check if session link is still valid
-  const isSessionLinkValid = (booking: Booking) => {
-    if (!booking.link_valid_until) return false
+  // Helper function to check if Join button should be visible (5 min before, 10 min after)
+  const canJoinSession = (booking: Booking) => {
+    if (!booking.scheduled_start_time || booking.status !== "confirmed") return false
+    
     const now = new Date()
-    const validUntil = new Date(booking.link_valid_until)
-    return validUntil > now
+    const scheduledTime = new Date(booking.scheduled_start_time)
+    
+    // 5 minutes before scheduled time
+    const fiveMinutesBefore = new Date(scheduledTime.getTime() - 5 * 60 * 1000)
+    // 10 minutes after scheduled time
+    const tenMinutesAfter = new Date(scheduledTime.getTime() + 10 * 60 * 1000)
+    
+    // Button visible from 5 min before to 10 min after
+    return now >= fiveMinutesBefore && now <= tenMinutesAfter
   }
 
-  // Helper function to check if booking is expired (time passed and not joined)
-  const isBookingExpired = (booking: Booking) => {
-    if (!booking.link_valid_until) return false
+  // Helper function to check if Join button should be disabled (before 5 min window)
+  const isJoinButtonDisabled = (booking: Booking) => {
+    if (!booking.scheduled_start_time || booking.status !== "confirmed") return true
+    
     const now = new Date()
-    const validUntil = new Date(booking.link_valid_until)
-    return validUntil < now && booking.status !== "completed" && booking.status !== "cancelled"
+    const scheduledTime = new Date(booking.scheduled_start_time)
+    const fiveMinutesBefore = new Date(scheduledTime.getTime() - 5 * 60 * 1000)
+    
+    // Disabled if current time is before 5 minutes window
+    return now < fiveMinutesBefore
+  }
+
+  // Helper function to check if booking is expired (10+ min after scheduled time)
+  const isBookingExpired = (booking: Booking) => {
+    if (!booking.scheduled_start_time) return false
+    if (booking.status === "completed" || booking.status === "cancelled") return false
+    
+    const now = new Date()
+    const scheduledTime = new Date(booking.scheduled_start_time)
+    const tenMinutesAfter = new Date(scheduledTime.getTime() + 10 * 60 * 1000)
+    
+    // Expired if current time is more than 10 minutes after scheduled time
+    return now > tenMinutesAfter
+  }
+
+  // Helper function to get time until join button becomes active
+  const getTimeUntilActive = (booking: Booking) => {
+    if (!booking.scheduled_start_time) return null
+    
+    const now = new Date()
+    const scheduledTime = new Date(booking.scheduled_start_time)
+    const fiveMinutesBefore = new Date(scheduledTime.getTime() - 5 * 60 * 1000)
+    
+    if (now >= fiveMinutesBefore) return null
+    
+    const diffMs = fiveMinutesBefore.getTime() - now.getTime()
+    const diffMins = Math.ceil(diffMs / 60000)
+    
+    if (diffMins > 60) {
+      const hours = Math.floor(diffMins / 60)
+      const mins = diffMins % 60
+      return `${hours}h ${mins}m`
+    }
+    return `${diffMins}m`
   }
 
   // Helper function to check if booking can be cancelled
@@ -249,16 +343,29 @@ export default function BookingsPage() {
                         >
                           {isBookingExpired(booking) ? "Expired" : booking.status}
                         </span>
-                        {/* Show Join button only if link is valid and not expired */}
-                        {booking.session_link && booking.status === "confirmed" && isSessionLinkValid(booking) && (
-                          <Link
-                            href={booking.session_link}
-                            onClick={() => vibrate()}
-                            className="px-4 py-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white text-xs font-semibold rounded-full transition-all active:scale-95 shadow-md"
-                          >
-                            <i className="fas fa-video mr-1"></i>
-                            Join
-                          </Link>
+                        {/* Show Join button based on time window (5 min before, 10 min after) */}
+                        {booking.session_link && booking.status === "confirmed" && !isBookingExpired(booking) && (
+                          <>
+                            {canJoinSession(booking) ? (
+                              <Link
+                                href={booking.session_link}
+                                onClick={() => vibrate()}
+                                className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs font-semibold rounded-full transition-all active:scale-95 shadow-md animate-pulse"
+                              >
+                                <i className="fas fa-video mr-1"></i>
+                                Join Now
+                              </Link>
+                            ) : (
+                              <button
+                                disabled
+                                className="px-4 py-2 bg-gray-300 text-gray-600 text-xs font-semibold rounded-full cursor-not-allowed opacity-60"
+                                title={`Available in ${getTimeUntilActive(booking)}`}
+                              >
+                                <i className="fas fa-clock mr-1"></i>
+                                {getTimeUntilActive(booking) ? `In ${getTimeUntilActive(booking)}` : 'Not Available'}
+                              </button>
+                            )}
+                          </>
                         )}
                         {/* Show Cancel button for pending/confirmed/expired bookings */}
                         {canCancelBooking(booking) && (

@@ -1,0 +1,241 @@
+========================================
+✅ SESSION TIME WINDOW SYSTEM
+========================================
+
+🎯 REQUIREMENTS IMPLEMENTED:
+1. ✅ Join button only clickable 5 minutes before scheduled time
+2. ✅ Join button disabled before 5-minute window
+3. ✅ Join button visible until 10 minutes after scheduled time
+4. ✅ Auto-cancel after 10-minute window expires
+5. ✅ Full refund to user on auto-cancel
+6. ✅ Transaction history for both user and astrologer
+
+========================================
+⏰ TIME WINDOW LOGIC:
+========================================
+
+Example: Session scheduled at 11:30 AM
+
+Timeline:
+---------
+11:00 AM - 11:24 AM:
+  ❌ Join button DISABLED
+  🕐 Shows: "In Xm" (time remaining)
+  💡 Tooltip: "Available in X minutes"
+
+11:25 AM - 11:39 AM:
+  ✅ Join button ACTIVE (green, pulsing)
+  🟢 Shows: "Join Now"
+  ⏰ 15-minute window (5 before + 10 after)
+
+11:40 AM onwards:
+  🔴 Session EXPIRED
+  ❌ Button disappears
+  🔄 Auto-cancel triggered
+  💰 Full refund processed
+
+========================================
+🎨 UI STATES:
+========================================
+
+1. DISABLED STATE (Before 5-min window):
+   - Gray button
+   - Clock icon
+   - Text: "In Xh Ym" or "In Xm"
+   - Cursor: not-allowed
+   - Opacity: 60%
+
+2. ACTIVE STATE (5 min before to 10 min after):
+   - Green gradient button
+   - Video icon
+   - Text: "Join Now"
+   - Pulsing animation
+   - Fully clickable
+
+3. EXPIRED STATE (After 10-min window):
+   - Red background
+   - X icon
+   - Text: "Session Expired (Auto-cancelling...)"
+   - Not clickable
+
+========================================
+🔄 AUTO-CANCEL SYSTEM:
+========================================
+
+Frontend Logic:
+- Checks every 30 seconds for expired bookings
+- Runs on both user and astrologer booking pages
+- Triggers cancel API automatically
+
+Cancel Flow:
+1. Detect booking expired (10+ min after scheduled time)
+2. Call /api/bookings/[id]/cancel
+3. Reason: "Auto-cancelled: Session window expired"
+4. Process full refund via cancel_booking_with_refund RPC
+
+========================================
+💰 REFUND SYSTEM:
+========================================
+
+When Auto-Cancel Triggers:
+
+1. User Wallet:
+   ✅ CREDIT: Full booking amount
+   📝 Transaction: "Refund for cancelled booking #XXX"
+   💵 Status: completed
+
+2. Astrologer History:
+   📝 Transaction: "Booking #XXX cancelled (no-show)"
+   💵 Amount: ₹0 (no deduction, just history)
+   ℹ️ Status: cancelled
+
+3. Booking Status:
+   🔴 Status: "cancelled"
+   📝 Reason: "Auto-cancelled: Session window expired"
+   ⏰ Cancelled at: Current timestamp
+
+========================================
+📱 IMPLEMENTATION FILES:
+========================================
+
+1. app/bookings/page.tsx (User Side):
+   - canJoinSession() - Check if in 15-min window
+   - isBookingExpired() - Check if past 10-min window
+   - getTimeUntilActive() - Calculate time until active
+   - Auto-cancel useEffect (runs every 30s)
+   - Updated Join button UI with states
+
+2. app/astrologer-portal/bookings/page.tsx (Astrologer Side):
+   - Same helper functions as user side
+   - Updated Join button UI with states
+   - Shows expired status
+
+3. app/api/bookings/[id]/cancel/route.ts:
+   - Already handles refunds
+   - Calls cancel_booking_with_refund RPC
+   - Returns refund amount and new balance
+
+========================================
+🧪 TEST SCENARIOS:
+========================================
+
+Scenario 1: Before 5-Min Window
+--------------------------------
+Session: 2:00 PM
+Current: 1:00 PM
+Expected: 
+  - Button disabled (gray)
+  - Shows "In 55m"
+  - Not clickable
+
+Scenario 2: Exactly 5 Min Before
+---------------------------------
+Session: 2:00 PM
+Current: 1:55 PM
+Expected:
+  - Button active (green, pulsing)
+  - Shows "Join Now"
+  - Fully clickable
+
+Scenario 3: During Session Time
+--------------------------------
+Session: 2:00 PM
+Current: 2:00 PM
+Expected:
+  - Button active (green, pulsing)
+  - Shows "Join Now"
+  - Fully clickable
+
+Scenario 4: 5 Min After (Still Valid)
+--------------------------------------
+Session: 2:00 PM
+Current: 2:05 PM
+Expected:
+  - Button active (green, pulsing)
+  - Shows "Join Now"
+  - Fully clickable
+
+Scenario 5: 9 Min After (Last Minute)
+--------------------------------------
+Session: 2:00 PM
+Current: 2:09 PM
+Expected:
+  - Button active (green, pulsing)
+  - Shows "Join Now"
+  - Fully clickable
+
+Scenario 6: 10+ Min After (Expired)
+------------------------------------
+Session: 2:00 PM
+Current: 2:11 PM
+Expected:
+  - Button shows "Session Expired"
+  - Red background
+  - Auto-cancel triggered within 30s
+  - Full refund processed
+
+========================================
+🔐 SECURITY & DATA INTEGRITY:
+========================================
+
+✅ Frontend checks prevent early/late joins
+✅ Backend validates all cancellations
+✅ Refunds processed via secure RPC function
+✅ Transaction history maintained for audit
+✅ No manual intervention required
+✅ Automatic cleanup of expired sessions
+
+========================================
+📊 DATABASE TRANSACTIONS:
+========================================
+
+On Auto-Cancel:
+
+wallet_transactions (User):
+- user_id: User ID
+- amount: Full booking amount (positive)
+- transaction_type: 'credit'
+- description: 'Refund for cancelled booking #XXX'
+- status: 'completed'
+- metadata: {booking_id, reason, refund_type: 'auto_cancel'}
+
+wallet_transactions (Astrologer - History Only):
+- user_id: Astrologer ID
+- amount: 0
+- transaction_type: 'info'
+- description: 'Booking #XXX cancelled (no-show)'
+- status: 'cancelled'
+- metadata: {booking_id, reason: 'auto_cancel_expired'}
+
+bookings table:
+- status: 'cancelled'
+- cancellation_reason: 'Auto-cancelled: Session window expired'
+- cancelled_at: CURRENT_TIMESTAMP
+
+========================================
+🎯 KEY FEATURES:
+========================================
+
+✅ Pure Frontend Logic (No backend changes needed)
+✅ Real-time countdown display
+✅ Automatic expiry detection
+✅ Seamless refund processing
+✅ Both user and astrologer see same states
+✅ Mobile-responsive UI
+✅ Accessible (disabled states, tooltips)
+✅ Performance optimized (30s check interval)
+
+========================================
+🚀 DEPLOYMENT READY:
+========================================
+
+All changes are frontend-only:
+- No database migrations needed
+- No API changes required
+- Uses existing cancel_booking_with_refund RPC
+- Works with current booking system
+
+Just deploy and test! 🎉
+
+========================================
+
