@@ -1,0 +1,117 @@
+========================================
+🚀 QUICK START - 192.168.1.11:3000
+========================================
+
+STEP 1: Start Servers
+----------------------
+Open 2 terminals:
+
+Terminal 1:
+> npm run dev
+
+Terminal 2:
+> npm run dev:socket
+
+
+STEP 2: Start Browser with Flags
+---------------------------------
+Double-click ONE of these:
+
+For Chrome:
+> FORCE-START-CHROME.bat
+
+For Brave:
+> FORCE-START-BRAVE.bat
+
+This will:
+✅ Close all browser windows
+✅ Start with camera/mic enabled
+✅ Open test page automatically
+
+
+STEP 3: Test Camera
+-------------------
+A test page will open automatically.
+Click "Test Camera" or "Test Both"
+
+If it works ✅:
+- Go to: http://192.168.1.11:3000
+- Camera/Mic will work!
+
+If it fails ❌:
+- See troubleshooting below
+
+
+========================================
+⚠️ TROUBLESHOOTING
+========================================
+
+Problem: Still getting "NOT_SUPPORTED" error
+
+Solution 1: Manual Flag Setup
+------------------------------
+1. Close ALL Chrome/Brave windows
+2. Open Chrome
+3. Go to: chrome://flags/#unsafely-treat-insecure-origin-as-secure
+4. Enable it
+5. In the text box, add: http://192.168.1.11:3000
+6. Click "Relaunch"
+7. Try again
+
+Solution 2: Check Your IP
+--------------------------
+Run in CMD:
+> ipconfig
+
+Find your IPv4 address.
+If it's NOT 192.168.1.11:
+- Update env.txt with correct IP
+- Update batch files with correct IP
+- Restart servers
+
+Solution 3: Use Localhost
+--------------------------
+Instead of IP, use:
+http://localhost:3000
+
+This ALWAYS works (no flags needed!)
+
+
+========================================
+📱 MOBILE TESTING
+========================================
+
+Same WiFi network:
+1. On mobile Chrome: chrome://flags
+2. Enable "Insecure origins"
+3. Add: http://192.168.1.11:3000
+4. Relaunch
+5. Visit: http://192.168.1.11:3000
+
+
+========================================
+✅ VERIFICATION
+========================================
+
+Open browser console (F12):
+
+console.log('Secure?', window.isSecureContext);
+console.log('getUserMedia?', !!navigator.mediaDevices?.getUserMedia);
+
+Should show:
+Secure? true
+getUserMedia? true
+
+
+========================================
+🎯 FILES YOU NEED
+========================================
+
+✅ FORCE-START-CHROME.bat  - Auto-start Chrome
+✅ FORCE-START-BRAVE.bat   - Auto-start Brave
+✅ TEST_CAMERA.html        - Test camera/mic
+✅ This file               - Instructions
+
+
+========================================
+

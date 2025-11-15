@@ -98,7 +98,7 @@ export default function PoojaBookingPage() {
     }
   }, [params.serviceId, params.astrologerId, router])
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!formData.address || !formData.city) {
       showToast("Please provide your address", "error")
       setShowAddressForm(true)
@@ -110,9 +110,60 @@ export default function PoojaBookingPage() {
       return
     }
 
-    // Show Razorpay message
     vibrate()
-    alert("Razorpay is now enabled. Please contact developer to proceed with booking.")
+
+    try {
+      // Check wallet balance first
+      const walletResponse = await fetch("/api/wallet/balance")
+      if (!walletResponse.ok) {
+        showToast("Failed to check wallet balance", "error")
+        return
+      }
+
+      const walletData = await walletResponse.json()
+      const currentBalance = walletData.balance || 0
+
+      if (currentBalance < bookingData.total_amount) {
+        const shortfall = bookingData.total_amount - currentBalance
+        if (confirm(`Insufficient wallet balance!\n\nRequired: ₹${bookingData.total_amount}\nAvailable: ₹${currentBalance}\nShortfall: ₹${shortfall.toFixed(2)}\n\nWould you like to recharge your wallet?`)) {
+          router.push("/wallet/add-money")
+        }
+        return
+      }
+
+      // Create pooja booking
+      const bookingResponse = await fetch("/api/pooja/bookings/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pooja_service_id: params.serviceId,
+          astrologer_id: params.astrologerId,
+          booking_date: formData.booking_date,
+          booking_time: formData.booking_time,
+          address: formData.address,
+          city: formData.city,
+          special_instructions: formData.special_instructions,
+        }),
+      })
+
+      const result = await bookingResponse.json()
+
+      if (bookingResponse.ok && result.success) {
+        showToast("Booking confirmed successfully!", "success")
+        setTimeout(() => {
+          router.push("/bookings")
+        }, 1500)
+      } else if (result.error === "INSUFFICIENT_BALANCE") {
+        if (confirm(`Insufficient wallet balance!\n\nRequired: ₹${result.data.required_amount}\nAvailable: ₹${result.data.current_balance}\n\nWould you like to recharge your wallet?`)) {
+          router.push("/wallet/add-money")
+        }
+      } else {
+        showToast(result.message || result.error || "Booking failed", "error")
+      }
+    } catch (error: any) {
+      console.error("[Pooja Booking] Error:", error)
+      showToast(`Booking failed: ${error.message}`, "error")
+    }
   }
 
   if (loading) {

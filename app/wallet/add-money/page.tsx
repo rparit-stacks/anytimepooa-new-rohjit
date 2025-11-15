@@ -102,14 +102,9 @@ export default function AddMoneyPage() {
     }
 
     vibratePattern([50, 30, 50])
-    setLoading(true)
 
-    // Simulate payment processing
-    setTimeout(() => {
-      setLoading(false)
-      alert(`Payment of ₹${selectedAmount} initiated via ${paymentGateways.find((g) => g.id === selectedGateway)?.name}`)
-      router.push("/wallet")
-    }, 2000)
+    // Show Razorpay unavailable error
+    alert("Payment Gateway Unavailable\n\nPlease contact developer. Razorpay and other payment methods are currently not available.\n\nFor assistance, please contact support.")
   }
 
   const finalAmount = selectedOffer ? selectedOffer.finalAmount : selectedAmount || 0

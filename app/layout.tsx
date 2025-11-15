@@ -6,7 +6,6 @@ import "./globals.css"
 import { GlobalNavbar } from "@/components/global-navbar"
 import { ToastContainer } from "@/components/toast"
 import { NavigationLoader } from "@/components/navigation-loader"
-import { SessionDebugger } from "@/components/session-debugger"
 import { GlobalClickHandler } from "@/components/global-click-handler"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -51,7 +50,6 @@ export default function RootLayout({
         {children}
         <GlobalNavbar />
         <ToastContainer />
-        <SessionDebugger />
         <Analytics />
       </body>
     </html>

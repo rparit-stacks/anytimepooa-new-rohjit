@@ -28,7 +28,10 @@ interface Astrologer {
   rating: number
   review_count: number
   location?: string
-  price_per_session: number
+  price_per_session?: number | null
+  rate_session_per_minute?: number | null
+  rate_video_per_minute?: number | null
+  rate_chat_per_minute?: number | null
   specializations?: string[]
 }
 
@@ -157,6 +160,11 @@ export function DashboardClient({ user }: { user: User }) {
 
   // Use astrologers from DB, fallback to empty array
   const nearbyAstrologers = astrologers.length > 0 ? astrologers.slice(0, 6) : []
+  const parseRate = (value: unknown) => {
+    if (value === null || value === undefined) return null
+    const numeric = Number(value)
+    return Number.isFinite(numeric) ? numeric : null
+  }
 
   const categories: Category[] = [
     { id: "1", name: "Vedic Astrology", icon: "fa-star", image_url: PLACEHOLDER_IMAGE },
@@ -424,7 +432,7 @@ export function DashboardClient({ user }: { user: User }) {
               <span>Astrologers Near You</span>
             </h3>
             <Link 
-              href="/astrologers" 
+              href="/astrologers?view=map" 
               onClick={() => vibrate()}
               className="text-orange-600 hover:text-orange-700 font-semibold text-xs sm:text-sm flex items-center gap-1"
             >
@@ -459,67 +467,100 @@ export function DashboardClient({ user }: { user: User }) {
           ) : nearbyAstrologers.length > 0 ? (
             <div className="overflow-x-auto pb-4 -mx-3 px-3 scrollbar-hide">
               <div className="flex gap-3" style={{ width: "max-content" }}>
-                {nearbyAstrologers.map((astrologer) => (
-                  <Card
-                    key={astrologer.id}
-                    className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group active:scale-95 min-w-[260px] sm:min-w-[280px] border border-gray-100"
-                    onClick={() => {
-                      vibrate()
-                      router.push(`/astrologer/${astrologer.id}`)
-                    }}
-                  >
-                    <div className="relative h-36 sm:h-40 overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100">
-                      <img
-                        src={astrologer.avatar_url || PLACEHOLDER_IMAGE}
-                        alt={astrologer.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = PLACEHOLDER_IMAGE
-                        }}
-                      />
-                      <div className="absolute top-2 right-2 bg-orange-600 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
-                        <i className="fas fa-star text-xs"></i>
-                        {Number(astrologer.rating).toFixed(1)}
+                {nearbyAstrologers.map((astrologer) => {
+                  const sessionRate = parseRate(
+                    astrologer.rate_session_per_minute ?? astrologer.price_per_session,
+                  )
+                  const videoRate = parseRate(astrologer.rate_video_per_minute)
+                  const chatRate = parseRate(astrologer.rate_chat_per_minute)
+                  const sessionRateLabel =
+                    sessionRate !== null ? `₹${sessionRate.toFixed(0)}/min` : null
+
+                  return (
+                    <Card
+                      key={astrologer.id}
+                      className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group active:scale-95 min-w-[260px] sm:min-w-[280px] border border-gray-100"
+                      onClick={() => {
+                        vibrate()
+                        router.push(`/astrologer/${astrologer.id}`)
+                      }}
+                    >
+                      <div className="relative h-36 sm:h-40 overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100">
+                        <img
+                          src={astrologer.avatar_url || PLACEHOLDER_IMAGE}
+                          alt={astrologer.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = PLACEHOLDER_IMAGE
+                          }}
+                        />
+                        <div className="absolute top-2 right-2 bg-orange-600 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+                          <i className="fas fa-star text-xs"></i>
+                          {Number(astrologer.rating).toFixed(1)}
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-3 sm:p-4">
-                      <h4 className="font-bold text-base sm:text-lg mb-1.5">{astrologer.name}</h4>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-2 flex items-center gap-1">
-                        <i className="fas fa-map-marker-alt text-orange-600 text-xs"></i>
-                        {astrologer.location || "Location not specified"}
-                      </p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <i
-                              key={i}
-                              className={`fas fa-star text-xs ${
-                                i < Math.floor(Number(astrologer.rating))
-                                  ? "text-yellow-500"
-                                  : "text-gray-300"
-                              }`}
-                            />
+                      <div className="p-3 sm:p-4">
+                        <h4 className="font-bold text-base sm:text-lg mb-1.5">{astrologer.name}</h4>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2 flex items-center gap-1">
+                          <i className="fas fa-map-marker-alt text-orange-600 text-xs"></i>
+                          {astrologer.location || "Location not specified"}
+                        </p>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <i
+                                key={i}
+                                className={`fas fa-star text-xs ${
+                                  i < Math.floor(Number(astrologer.rating))
+                                    ? "text-yellow-500"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500">({astrologer.review_count || 0})</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-2.5">
+                          {(astrologer.specializations || []).slice(0, 2).map((spec: string) => (
+                            <span
+                              key={spec}
+                              className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium"
+                            >
+                              {spec}
+                            </span>
                           ))}
                         </div>
-                        <span className="text-xs text-gray-500">({astrologer.review_count || 0})</span>
+                        <div className="space-y-1">
+                          {sessionRateLabel ? (
+                            <p className="text-base sm:text-lg font-bold text-orange-600">
+                              {sessionRateLabel}{" "}
+                              <span className="text-xs font-semibold text-gray-500">(Session)</span>
+                            </p>
+                          ) : (
+                            <p className="text-xs font-semibold text-gray-500">
+                              Session rate not available
+                            </p>
+                          )}
+                          {(videoRate || chatRate) && (
+                            <div className="flex flex-wrap gap-2 text-xs text-gray-600 font-medium">
+                              {videoRate && (
+                                <span className="px-2 py-1 bg-orange-50 border border-orange-100 rounded-full">
+                                  Video ₹{videoRate.toFixed(0)}/min
+                                </span>
+                              )}
+                              {chatRate && (
+                                <span className="px-2 py-1 bg-orange-50 border border-orange-100 rounded-full">
+                                  Chat ₹{chatRate.toFixed(0)}/min
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1 mb-2.5">
-                        {(astrologer.specializations || []).slice(0, 2).map((spec: string) => (
-                          <span
-                            key={spec}
-                            className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium"
-                          >
-                            {spec}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="text-base sm:text-lg font-bold text-orange-600">
-                        ₹{Number(astrologer.price_per_session || 0).toFixed(0)}/session
-                      </p>
-              </div>
-                  </Card>
-                ))}
+                    </Card>
+                  )
+                })}
               </div>
             </div>
           ) : (

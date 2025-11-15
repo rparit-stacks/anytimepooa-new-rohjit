@@ -1,0 +1,152 @@
+========================================
+🚀 VERCEL DEPLOYMENT GUIDE
+========================================
+
+Your Vercel URL: https://anytimepooa-new-rohjit.vercel.app
+
+========================================
+📋 STEP 1: Add Environment Variables
+========================================
+
+Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+
+Add these:
+
+NEXT_PUBLIC_APP_URL="https://anytimepooa-new-rohjit.vercel.app"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dWVyaHJ4aHBkZWF6bGN6ZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1Njk2MzIsImV4cCI6MjA3ODE0NTYzMn0.3ZNQ-WGn-_yEAdk9tHq5N8rKDUR5wl7H90Oldmj8_Cg"
+NEXT_PUBLIC_SUPABASE_URL="https://hvuerhrxhpdeazlczfxd.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dWVyaHJ4aHBkZWF6bGN6ZnhkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU2OTYzMiwiZXhwIjoyMDc4MTQ1NjMyfQ._rb6_Be7kG_w0MAwzIOL9EtVUTnVNZd6H1u0C4BvChc"
+
+# Agora Credentials
+NEXT_PUBLIC_AGORA_APP_ID="9117aa0840b740859a2804e9c7157499"
+AGORA_APP_CERTIFICATE="fd421c82ec06466e818b717d58ec952c"
+
+# Socket URL (see Step 2)
+NEXT_PUBLIC_SOCKET_URL="YOUR_SOCKET_SERVER_URL"
+
+# Email Settings
+SMTP_FROM_EMAIL="help@anytimepooja.in"
+SMTP_FROM_NAME="Anytime Pooja"
+SMTP_HOST="smtp.hostinger.com"
+SMTP_PASSWORD="Anytimepooja@111288"
+SMTP_PORT="465"
+SMTP_USERNAME="help@anytimepooja.in"
+
+========================================
+🔌 STEP 2: Deploy Socket Server
+========================================
+
+Socket server CANNOT run on Vercel (needs persistent connections).
+Deploy to Railway or Render (FREE):
+
+OPTION A: Railway (Recommended)
+--------------------------------
+1. Go to: https://railway.app/
+2. Sign up with GitHub
+3. Click "New Project" → "Deploy from GitHub repo"
+4. Select your repo
+5. Railway will auto-detect Node.js
+6. Add Start Command: node socket-server.js
+7. Add Environment Variables:
+   - Copy all from env.txt
+8. Deploy!
+9. Copy the Railway URL (e.g., https://your-app.railway.app)
+10. Update in Vercel: NEXT_PUBLIC_SOCKET_URL="https://your-app.railway.app"
+
+OPTION B: Render
+----------------
+1. Go to: https://render.com/
+2. Sign up with GitHub
+3. New → Web Service
+4. Connect your repo
+5. Settings:
+   - Build Command: npm install
+   - Start Command: node socket-server.js
+   - Environment: Node
+6. Add Environment Variables (from env.txt)
+7. Deploy!
+8. Copy Render URL
+9. Update in Vercel
+
+OPTION C: Heroku (Paid)
+------------------------
+Similar to Railway/Render but requires credit card.
+
+========================================
+📱 STEP 3: Update Socket URL
+========================================
+
+After deploying socket server:
+
+1. Go to Vercel Dashboard
+2. Settings → Environment Variables
+3. Update: NEXT_PUBLIC_SOCKET_URL="https://your-socket-server.railway.app"
+4. Redeploy
+
+========================================
+✅ STEP 4: Test Deployment
+========================================
+
+1. Go to: https://anytimepooa-new-rohjit.vercel.app
+2. Open on mobile/desktop
+3. Camera/Mic should work (HTTPS!)
+4. Test voice/video calls
+
+========================================
+🎯 QUICK DEPLOYMENT CHECKLIST
+========================================
+
+□ Environment variables added to Vercel
+□ Socket server deployed to Railway/Render
+□ NEXT_PUBLIC_SOCKET_URL updated
+□ Vercel redeployed
+□ Tested on mobile
+□ Tested on desktop
+□ Camera/Mic working
+□ Voice calls working
+□ Video calls working
+
+========================================
+⚠️ IMPORTANT NOTES
+========================================
+
+1. Socket Server is REQUIRED for:
+   - Real-time chat
+   - Typing indicators
+   - Presence (online/offline)
+   - WebRTC signaling (if using custom WebRTC)
+
+2. Agora Works WITHOUT Socket Server:
+   - Voice calls ✅
+   - Video calls ✅
+   - But chat features need socket
+
+3. For Testing WITHOUT Socket:
+   - Voice/Video will work
+   - Chat will NOT work
+   - Deploy socket server ASAP
+
+========================================
+🚀 ALTERNATIVE: Use Supabase Realtime
+========================================
+
+Instead of Socket.IO, you can use Supabase Realtime:
+- Already have Supabase
+- No separate server needed
+- Built-in presence
+- Real-time subscriptions
+
+Would you like me to implement Supabase Realtime instead?
+
+========================================
+📞 CURRENT STATUS
+========================================
+
+✅ Vercel URL: https://anytimepooa-new-rohjit.vercel.app
+✅ Agora configured
+✅ HTTPS enabled (camera/mic will work!)
+⏳ Socket server needs deployment
+⏳ Environment variables need to be added to Vercel
+
+========================================
+

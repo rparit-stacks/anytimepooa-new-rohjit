@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { vibrate } from "@/lib/vibration"
 import { SidebarMenu } from "./sidebar-menu"
+import NotificationBell from "./notification-bell"
 
 export function Navbar() {
   const pathname = usePathname()
@@ -98,17 +99,7 @@ export function TopNavbar({ userName, onMenuClick }: { userName?: string; onMenu
 
         {/* Mobile: Notifications + Three Menu */}
         <div className="flex items-center gap-3 sm:hidden">
-          <Link
-            href="/notifications"
-            className="relative p-2 text-gray-600 hover:text-orange-600 transition-colors active:scale-95"
-          >
-            <i className="fas fa-bell text-xl"></i>
-            {notifications > 0 && (
-              <span className="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {notifications}
-              </span>
-            )}
-          </Link>
+          <NotificationBell />
           <button
             onClick={() => {
               vibrate()
@@ -126,17 +117,7 @@ export function TopNavbar({ userName, onMenuClick }: { userName?: string; onMenu
 
         {/* Desktop: Notifications + Three Menu + Welcome + Logout */}
         <div className="hidden sm:flex items-center gap-4">
-          <Link
-            href="/notifications"
-            className="relative p-2 text-gray-600 hover:text-orange-600 transition-colors"
-          >
-            <i className="fas fa-bell text-lg"></i>
-            {notifications > 0 && (
-              <span className="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                {notifications}
-              </span>
-            )}
-          </Link>
+          <NotificationBell />
           <button
             onClick={() => {
               vibrate()

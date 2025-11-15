@@ -1,0 +1,202 @@
+========================================
+🔧 AGORA TROUBLESHOOTING GUIDE
+========================================
+
+❌ ERROR: "NOT_SUPPORTED: Cannot find getUserMedia"
+========================================
+
+This error means your browser cannot access camera/microphone.
+
+COMMON CAUSES & SOLUTIONS:
+
+1. ❌ NOT USING HTTPS (Most Common!)
+   ✅ SOLUTION:
+   - getUserMedia ONLY works on:
+     • https:// websites
+     • http://localhost (development)
+     • http://127.0.0.1 (development)
+   
+   - If accessing via IP (e.g., http://192.168.1.5:3000):
+     ❌ WON'T WORK - Browser blocks it!
+   
+   - For mobile testing on same network:
+     Option A: Use ngrok (creates HTTPS tunnel)
+     Option B: Use localhost.run
+     Option C: Deploy to Vercel (free HTTPS)
+
+2. ❌ BROWSER NOT SUPPORTED
+   ✅ SOLUTION:
+   - Use modern browser:
+     • Chrome (recommended)
+     • Firefox
+     • Safari
+     • Edge
+   - Update to latest version
+   - Don't use: Internet Explorer, old browsers
+
+3. ❌ INSECURE CONTEXT
+   ✅ SOLUTION:
+   - Check browser address bar:
+     • Should show 🔒 (secure)
+     • Or "localhost" (allowed)
+   - If shows "Not Secure" → getUserMedia blocked
+
+========================================
+🚀 QUICK FIX FOR LOCAL DEVELOPMENT
+========================================
+
+METHOD 1: Use localhost (Recommended)
+--------------------------------------
+Access your app at:
+http://localhost:3000
+NOT: http://192.168.x.x:3000
+
+METHOD 2: Use ngrok (For mobile testing)
+--------------------------------------
+1. Install ngrok: https://ngrok.com/download
+2. Run: ngrok http 3000
+3. Use the https:// URL provided
+4. Access from any device!
+
+METHOD 3: Deploy to Vercel (Production)
+--------------------------------------
+1. Push code to GitHub
+2. Import to Vercel
+3. Auto HTTPS enabled
+4. Works everywhere!
+
+========================================
+📱 MOBILE TESTING
+========================================
+
+❌ WRONG WAY:
+http://192.168.1.5:3000
+(Browser blocks getUserMedia on non-HTTPS)
+
+✅ RIGHT WAY:
+1. Use ngrok:
+   ngrok http 3000
+   → https://abc123.ngrok.io
+
+2. Or deploy to Vercel:
+   → https://your-app.vercel.app
+
+========================================
+🔍 CHECK YOUR SETUP
+========================================
+
+Run this in browser console:
+
+```javascript
+// Check if getUserMedia is available
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  console.log('✅ getUserMedia is supported');
+  
+  // Try to get camera/mic
+  navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+    .then(() => console.log('✅ Permissions granted!'))
+    .catch(err => console.error('❌ Error:', err.name, err.message));
+} else {
+  console.error('❌ getUserMedia NOT supported');
+  console.log('Current URL:', window.location.href);
+  console.log('Is secure context?', window.isSecureContext);
+}
+```
+
+========================================
+✅ EXPECTED OUTPUT (Working)
+========================================
+
+Current URL: http://localhost:3000/session/...
+Is secure context? true
+✅ getUserMedia is supported
+✅ Permissions granted!
+
+========================================
+❌ PROBLEM OUTPUT (Not Working)
+========================================
+
+Current URL: http://192.168.1.5:3000/session/...
+Is secure context? false
+❌ getUserMedia NOT supported
+
+FIX: Use localhost or HTTPS!
+
+========================================
+🌐 PRODUCTION DEPLOYMENT
+========================================
+
+When deploying to production:
+
+1. Vercel (Recommended - Free HTTPS)
+   - Push to GitHub
+   - Connect to Vercel
+   - Auto HTTPS + SSL certificate
+   - Works perfectly!
+
+2. Netlify (Alternative)
+   - Similar to Vercel
+   - Free HTTPS included
+
+3. Custom Domain
+   - MUST have SSL certificate
+   - Use Cloudflare for free SSL
+   - Or Let's Encrypt
+
+========================================
+🔒 SECURITY REQUIREMENTS
+========================================
+
+getUserMedia REQUIRES:
+✅ HTTPS (or localhost)
+✅ User permission
+✅ Secure context
+
+getUserMedia BLOCKED ON:
+❌ HTTP (except localhost)
+❌ Insecure contexts
+❌ Old browsers
+
+========================================
+💡 DEVELOPMENT TIPS
+========================================
+
+1. Always test on localhost first
+2. Use Chrome DevTools to check:
+   - Console for errors
+   - Network tab for API calls
+   - Application > Permissions
+
+3. For team testing:
+   - Deploy to Vercel (free)
+   - Share the HTTPS link
+   - Everyone can test!
+
+========================================
+📞 STILL NOT WORKING?
+========================================
+
+1. Check browser console for exact error
+2. Verify you're on HTTPS or localhost
+3. Check browser permissions:
+   - Click lock icon 🔒 in address bar
+   - Check camera/microphone permissions
+4. Try different browser
+5. Clear browser cache
+6. Restart browser
+
+========================================
+✅ WORKING SETUP CHECKLIST
+========================================
+
+□ Using HTTPS or localhost
+□ Modern browser (Chrome/Firefox/Safari)
+□ Browser updated to latest version
+□ Camera/microphone connected
+□ Permissions allowed in browser
+□ Agora credentials in .env file
+□ Dev server running (npm run dev)
+□ Socket server running (npm run dev:socket)
+
+========================================
+

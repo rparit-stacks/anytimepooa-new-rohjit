@@ -1,0 +1,123 @@
+========================================
+🔓 ENABLE CAMERA/MIC ON LOCAL IP
+========================================
+
+Your IP: 192.168.1.11:3000
+
+Browser blocks getUserMedia on HTTP (non-localhost).
+Here's how to enable it:
+
+========================================
+🦁 BRAVE BROWSER (Recommended)
+========================================
+
+METHOD 1: Enable Insecure Origins (Easiest)
+--------------------------------------------
+1. Open Brave
+2. Go to: brave://flags/#unsafely-treat-insecure-origin-as-secure
+3. Enable the flag
+4. Add: http://192.168.1.11:3000
+5. Click "Relaunch"
+
+✅ Done! Now 192.168.1.11:3000 works like localhost!
+
+METHOD 2: Brave Settings
+--------------------------------------------
+1. Go to: brave://settings/content/camera
+2. Click "Add" under "Allowed to use your camera"
+3. Add: http://192.168.1.11:3000
+4. Do same for Microphone:
+   brave://settings/content/microphone
+
+========================================
+🌐 CHROME BROWSER
+========================================
+
+Same as Brave:
+1. Go to: chrome://flags/#unsafely-treat-insecure-origin-as-secure
+2. Enable the flag
+3. Add: http://192.168.1.11:3000
+4. Relaunch Chrome
+
+========================================
+🦊 FIREFOX BROWSER
+========================================
+
+1. Go to: about:config
+2. Search: media.devices.insecure.enabled
+3. Set to: true
+4. Search: media.getusermedia.insecure.enabled
+5. Set to: true
+
+========================================
+📱 MOBILE TESTING (Android)
+========================================
+
+Chrome Mobile:
+1. Connect to same WiFi
+2. Open: chrome://flags
+3. Enable: "Insecure origins treated as secure"
+4. Add: http://192.168.1.11:3000
+5. Relaunch
+
+========================================
+🚀 QUICK START SCRIPT
+========================================
+
+Windows PowerShell:
+-------------------
+# Start Brave with insecure origins allowed
+start brave --unsafely-treat-insecure-origin-as-secure="http://192.168.1.11:3000" --user-data-dir="C:\temp\brave-dev"
+
+# Or Chrome:
+start chrome --unsafely-treat-insecure-origin-as-secure="http://192.168.1.11:3000" --user-data-dir="C:\temp\chrome-dev"
+
+Mac/Linux:
+----------
+# Brave
+brave --unsafely-treat-insecure-origin-as-secure="http://192.168.1.11:3000" --user-data-dir=/tmp/brave-dev
+
+# Chrome
+google-chrome --unsafely-treat-insecure-origin-as-secure="http://192.168.1.11:3000" --user-data-dir=/tmp/chrome-dev
+
+========================================
+✅ VERIFY IT'S WORKING
+========================================
+
+After enabling, test in browser console:
+
+console.log('Secure context?', window.isSecureContext);
+console.log('getUserMedia?', !!navigator.mediaDevices?.getUserMedia);
+
+Should show:
+Secure context? true
+getUserMedia? true
+
+========================================
+🎯 RECOMMENDED SETUP
+========================================
+
+For Development:
+1. Use Brave browser (fastest)
+2. Enable flag once (stays enabled)
+3. Access: http://192.168.1.11:3000
+4. Works on all devices on same network!
+
+For Production:
+1. Deploy to Vercel (free HTTPS)
+2. No flags needed
+3. Works everywhere
+
+========================================
+⚠️ SECURITY NOTE
+========================================
+
+These flags are ONLY for development!
+- Only use on local network
+- Don't use for production
+- Flags make browser less secure
+
+For production, ALWAYS use HTTPS!
+
+========================================
+

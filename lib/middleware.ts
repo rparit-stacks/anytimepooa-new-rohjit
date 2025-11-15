@@ -6,7 +6,17 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
-  // Skip middleware for API routes
+  // CRITICAL: Astrologer portal MUST be completely isolated
+  // Skip ALL middleware logic for astrologer portal - it has its own auth system
+  // Astrologer portal uses: astrologer_session_token cookie + astrologer_sessions table
+  // User portal uses: session_token cookie + sessions table
+  if (request.nextUrl.pathname.startsWith("/astrologer-portal") ||
+      request.nextUrl.pathname.startsWith("/api/astrologer")) {
+    console.log("[MIDDLEWARE] ⚡ ASTROLOGER PORTAL - Completely isolated, skipping user auth middleware")
+    return supabaseResponse
+  }
+
+  // Skip middleware for other API routes (user API routes)
   if (request.nextUrl.pathname.startsWith("/api")) {
     return supabaseResponse
   }
@@ -42,11 +52,13 @@ export async function updateSession(request: NextRequest) {
       supabaseResponse.cookies.delete("session_token")
     }
     // No valid session token, check if route requires auth
+    // Session links (/session/*) are PUBLIC - they have their own token validation
     if (
       request.nextUrl.pathname !== "/" &&
       !request.nextUrl.pathname.startsWith("/login") &&
       !request.nextUrl.pathname.startsWith("/auth") &&
-      !request.nextUrl.pathname.startsWith("/sign-up")
+      !request.nextUrl.pathname.startsWith("/sign-up") &&
+      !request.nextUrl.pathname.startsWith("/session")
     ) {
       console.log("[MIDDLEWARE] ❌ REDIRECTING TO LOGIN")
       console.log("[MIDDLEWARE] Reason: No valid session token for protected route")
@@ -122,10 +134,12 @@ export async function updateSession(request: NextRequest) {
       // Clear invalid session cookie immediately
       supabaseResponse.cookies.delete("session_token")
       
+      // Session links (/session/*) are PUBLIC - they have their own token validation
       const isProtected = request.nextUrl.pathname !== "/" &&
         !request.nextUrl.pathname.startsWith("/login") &&
         !request.nextUrl.pathname.startsWith("/auth") &&
-        !request.nextUrl.pathname.startsWith("/sign-up")
+        !request.nextUrl.pathname.startsWith("/sign-up") &&
+        !request.nextUrl.pathname.startsWith("/session")
       
       if (isProtected) {
         console.log(`[MIDDLEWARE] ACTION: REDIRECT From=${request.nextUrl.pathname} To=/auth/login Reason=InvalidSession`)
